@@ -36,6 +36,8 @@ public class SecurityConfig  {
                         .requestMatchers("/swagger-resources/**").permitAll()
                         .requestMatchers("/prueba/**").hasAnyRole(ADMIN, USER)
                         .requestMatchers("/fare/**").hasAnyRole(ADMIN, USER, AUDITH)
+                        .requestMatchers("/parkings/**").hasAnyRole(ADMIN, USER, AUDITH)
+                        .requestMatchers("/registers/**").hasAnyRole(ADMIN, USER, AUDITH)
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
