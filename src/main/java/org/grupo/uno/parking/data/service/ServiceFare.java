@@ -5,14 +5,17 @@ import lombok.AllArgsConstructor;
 import org.grupo.uno.parking.data.dto.FareDto;
 import org.grupo.uno.parking.data.exception.AllDataRequiredException;
 import org.grupo.uno.parking.data.exception.DeleteException;
+import org.grupo.uno.parking.data.exceptions.FareExist;
 import org.grupo.uno.parking.data.model.Fare;
 import org.grupo.uno.parking.data.repository.FareRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
 import java.util.Optional;
 
 @AllArgsConstructor
@@ -21,8 +24,9 @@ public class ServiceFare implements IServiceFare {
     private static final Logger logger = LoggerFactory.getLogger(ServiceFare.class);
     private FareRepository fareRepository;
     @Override
-    public List<Fare> getAllFares(){
-        return fareRepository.findAll();
+    public Page<Fare> getAllFares(int page, int size){
+        Pageable pageable = PageRequest.of(page, size);
+        return fareRepository.findAll(pageable);
     }
 
     @Override
@@ -43,7 +47,7 @@ public class ServiceFare implements IServiceFare {
         try {
             fareRepository.deleteById(idFare);
         } catch (DataAccessException e) {
-            logger.error("Fail deliting fare", e);
+            logger.error("Fail deliting fare");
             throw new DeleteException("Error deleting fare ", e);
         }
     }
@@ -55,13 +59,20 @@ public class ServiceFare implements IServiceFare {
             throw  new EntityNotFoundException("This Fare don't exist");
         }
         Optional<Fare> optionalFare = fareRepository.findById(id);
-        if(optionalFare.isPresent()){
+        if (optionalFare.isPresent()) {
             Fare fare = optionalFare.get();
-            if(fareDto.getName()!= null) fare.setName(fareDto.getName());
-            if(fareDto.getStartTime()!= null) fare.setStartTime(fareDto.getStartTime());
-            if(fareDto.getEndTime()!= null) fare.setEndTime(fareDto.getEndTime());
-            if(fareDto.getPrice()!= null) fare.setPrice(fareDto.getPrice());
-            if(fareDto.getStatus() != null) fare.setStatus(fareDto.getStatus());
+            if (fareDto.getName() != null) {
+                Optional<Fare> existingFareWithName = fareRepository.findByName(fareDto.getName());
+                if (existingFareWithName.isPresent() && !existingFareWithName.get().getFareId().equals(id)) {
+                    logger.warn("Fare with name {} already exists", fareDto.getName());
+                    throw new FareExist("Fare with name " + fareDto.getName() + " already exists");
+                }
+                fare.setName(fareDto.getName());
+            }
+            if (fareDto.getStartTime() != null) fare.setStartTime(fareDto.getStartTime());
+            if (fareDto.getEndTime() != null) fare.setEndTime(fareDto.getEndTime());
+            if (fareDto.getPrice() != null) fare.setPrice(fareDto.getPrice());
+            if (fareDto.getStatus() != null) fare.setStatus(fareDto.getStatus());
             fareRepository.save(fare);
         }
     }
@@ -71,6 +82,12 @@ public class ServiceFare implements IServiceFare {
         if(fareDto.getName() == null || fareDto.getStartTime() == null || fareDto.getEndTime() == null || fareDto.getPrice() == null){
             logger.warn("All data is required");
             throw new AllDataRequiredException("All data is required");
+        }
+
+        Optional<Fare> existingFare = fareRepository.findByName(fareDto.getName());
+        if (existingFare.isPresent()) {
+            logger.warn("Fare with name {} already exists", fareDto.getName());
+            throw new FareExist("Fare with name " + fareDto.getName() + " already exists");
         }
         Fare fare = new Fare();
         fare.setName(fareDto.getName());

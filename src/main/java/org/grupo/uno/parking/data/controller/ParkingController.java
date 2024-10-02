@@ -1,5 +1,6 @@
 package org.grupo.uno.parking.data.controller;
 
+import jakarta.annotation.security.RolesAllowed;
 import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.ParkingDTO;
 import org.grupo.uno.parking.data.model.Parking;
@@ -24,6 +25,7 @@ public class ParkingController {
         this.parkingService = parkingService;
     }
 
+    @RolesAllowed("PARKING")
     @GetMapping("")
     public ResponseEntity<Page<Parking>> getAllParkings(@RequestParam(defaultValue = "0") int page,
                                                         @RequestParam(defaultValue = "10") int size) {
@@ -31,7 +33,7 @@ public class ParkingController {
         return ResponseEntity.ok(parkings);
     }
 
-
+    @RolesAllowed("PARKING")
     @GetMapping("/parking/{id}")
     public ResponseEntity<Parking> getParkingById(@PathVariable("id") long id) {
         Optional<Parking> parking = parkingService.findById(id);
@@ -39,6 +41,7 @@ public class ParkingController {
                 .orElseGet(() -> ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
+    @RolesAllowed("PARKING")
     @PostMapping("/parking/save")
     public ResponseEntity<Parking> createParking(@RequestBody ParkingDTO parkingDTO) {
         Parking parking = new Parking();
@@ -47,6 +50,7 @@ public class ParkingController {
         return ResponseEntity.status(HttpStatus.CREATED).body(savedParking);
     }
 
+    @RolesAllowed("PARKING")
     @PutMapping("/parking/update/{id}")
     public ResponseEntity<Parking> updateParking(@PathVariable("id") long id, @RequestBody ParkingDTO parkingDTO) {
         try {
@@ -57,6 +61,7 @@ public class ParkingController {
         }
     }
 
+    @RolesAllowed("PARKING")
     @DeleteMapping("/parking/delete/{id}")
     public ResponseEntity<Void> deleteParking(@PathVariable("id") long id) {
         try {

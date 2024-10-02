@@ -26,7 +26,7 @@ public class AudithController {
         this.audithService = audithService;
     }
 
-    @RolesAllowed({"ADMIN", "USER", "AUDITH"})
+    @RolesAllowed("AUDITH")
     @GetMapping("")
     public ResponseEntity<List<AudithDTO>> getAllAudits() {
         List<Audith> audits = audithService.getAllAudits();
@@ -34,7 +34,7 @@ public class AudithController {
         return ResponseEntity.ok(auditDTOs);
     }
 
-    @RolesAllowed({"ADMIN", "USER", "AUDITH"})
+    @RolesAllowed("AUDITH")
     @GetMapping("/{id}")
     public ResponseEntity<AudithDTO> getAuditById(@PathVariable("id") long id) {
         Optional<Audith> audit = audithService.getAuditById(id);
@@ -43,7 +43,7 @@ public class AudithController {
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @RolesAllowed({"ADMIN", "USER", "AUDITH"})
+    @RolesAllowed("AUDITH")
     @GetMapping("/entity/{entity}")
     public ResponseEntity<List<AudithDTO>> getAuditsByEntity(@PathVariable("entity") String entity) {
         List<Audith> audits = audithService.getAuditsByEntity(entity);
@@ -51,7 +51,7 @@ public class AudithController {
         return ResponseEntity.ok(auditDTOs);
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("AUDITH")
     @PostMapping("/manual")
     public ResponseEntity<String> createManualAudit(@Valid @RequestBody Audith auditRequest) {
         try {

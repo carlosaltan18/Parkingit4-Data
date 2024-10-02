@@ -17,7 +17,7 @@ import java.util.Map;
 @RestController
 public class Prueba {
     private static final Logger logger = LoggerFactory.getLogger(Prueba.class);
-    @RolesAllowed({"ADMIN", "USER"})
+    @RolesAllowed({"PARKING"})
     @GetMapping("")
     public ResponseEntity<Map<String, String>> getAllRoles() {
         Map<String, String> response = new HashMap<>();

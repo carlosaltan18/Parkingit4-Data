@@ -1,5 +1,6 @@
 package org.grupo.uno.parking.data.controller;
 
+import jakarta.annotation.security.RolesAllowed;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
 import org.grupo.uno.parking.data.model.Register;
 import org.grupo.uno.parking.data.service.RegisterService;
@@ -19,6 +20,7 @@ public class RegisterController {
     @Autowired
     private RegisterService registerService;
 
+    @RolesAllowed("REGISTER")
     @GetMapping("")
     public ResponseEntity<Page<Register>> getAllRegisters(
             @RequestParam(defaultValue = "0") int page,
@@ -27,6 +29,7 @@ public class RegisterController {
         return new ResponseEntity<>(registers, HttpStatus.OK);
     }
 
+    @RolesAllowed("REGISTER")
     @GetMapping("/{id}")
     public ResponseEntity<Register> getRegisterById(@PathVariable Long id) {
         Optional<Register> register = registerService.findById(id);
@@ -34,12 +37,14 @@ public class RegisterController {
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
+    @RolesAllowed("REGISTER")
     @PostMapping("/saveRegister")
     public ResponseEntity<Register> createRegister(@RequestBody RegisterDTO registerDTO) {
         Register newRegister = registerService.saveRegister(registerDTO);
         return new ResponseEntity<>(newRegister, HttpStatus.CREATED);
     }
 
+    @RolesAllowed("REGISTER")
     @PutMapping("/updateRegister/{id}")
     public ResponseEntity<?> updateRegister(@PathVariable Long id, @RequestBody RegisterDTO registerDTO) {
         try {
@@ -50,6 +55,7 @@ public class RegisterController {
         }
     }
 
+    @RolesAllowed("REGISTER")
     @DeleteMapping("/deleteRegister/{id}")
     public ResponseEntity<?> deleteRegister(@PathVariable Long id) {
         try {

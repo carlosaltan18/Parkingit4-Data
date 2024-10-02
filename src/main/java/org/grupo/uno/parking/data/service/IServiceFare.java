@@ -3,13 +3,13 @@ package org.grupo.uno.parking.data.service;
 
 import org.grupo.uno.parking.data.dto.FareDto;
 import org.grupo.uno.parking.data.model.Fare;
+import org.springframework.data.domain.Page;
 
-import java.util.List;
 import java.util.Optional;
 
 public interface IServiceFare {
 
-    List<Fare> getAllFares();
+    Page<Fare> getAllFares(int page, int size);
     Optional<Fare> findFareById(Long id);
     void delete(Long idFare);
     void updateFare(FareDto fareDto, Long id);

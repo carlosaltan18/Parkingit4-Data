@@ -10,13 +10,13 @@ import org.grupo.uno.parking.data.model.Fare;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -30,7 +30,7 @@ public class FareController {
     private final ServiceFare fareService;
     private static final Logger logger = LoggerFactory.getLogger(FareController.class);
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @PostMapping("")
     public ResponseEntity<Map<String, String>> addFare(@RequestBody FareDto dto){
         Map<String, String> response = new HashMap<>();
@@ -50,14 +50,18 @@ public class FareController {
         }
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @GetMapping("")
-    public ResponseEntity<Map<String, String>> getAllFares(){
+    public ResponseEntity<Map<String, String>> getAllFares(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
         Map<String, String> response = new HashMap<>();
         try{
-            List<Fare> fares = fareService.getAllFares();
-            response.put(MESSAGE, fares.toString());
-            logger.info("Fares get with exit");
+            Page<Fare> fares = fareService.getAllFares(page, size);
+            response.put(MESSAGE, "fares retrieved successfully");
+            response.put("users", fares.getContent().toString());
+            response.put("totalPages", String.valueOf(fares.getTotalPages()));
+            response.put("currentPage", String.valueOf(fares.getNumber()));
+            response.put("totalElements", String.valueOf(fares.getTotalElements()));
+            logger.info("Fares get with exit pages: {}, elements: {}",page, fares.getTotalElements());
             return ResponseEntity.ok(response);
         }catch (Exception e){
             logger.error("Fail get fares");
@@ -67,7 +71,7 @@ public class FareController {
 
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @GetMapping("/{id}")
     public ResponseEntity<Map<String, String>> getFareId(@PathVariable Long id){
         Map<String, String> response = new HashMap<>();
@@ -84,7 +88,7 @@ public class FareController {
 
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @GetMapping("/name/{name}")
     public ResponseEntity<Map<String, String>> getFareName(@PathVariable String name){
         Map<String, String> response = new HashMap<>();
@@ -101,7 +105,7 @@ public class FareController {
 
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @DeleteMapping("/{id}")
     public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id){
         Map<String, String> response = new HashMap<>();
@@ -124,7 +128,7 @@ public class FareController {
 
     }
 
-    @RolesAllowed({"ADMIN"})
+    @RolesAllowed("FARE")
     @PutMapping("/{id}")
     public  ResponseEntity<Map<String, String>> updateFare(@PathVariable Long id, @RequestBody FareDto dto){
         Map<String, String> response = new HashMap<>();
