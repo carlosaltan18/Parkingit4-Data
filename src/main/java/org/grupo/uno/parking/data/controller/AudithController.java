@@ -19,6 +19,7 @@ import java.util.Optional;
 @RequestMapping("/audith")
 public class AudithController {
 
+    @Autowired
     AudithService audithService;
 
     @Autowired

@@ -4,6 +4,7 @@ import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.repository.AudithRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -13,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
-
+@Service
 public class AudithService {
 
     private final AudithRepository audithRepository;
