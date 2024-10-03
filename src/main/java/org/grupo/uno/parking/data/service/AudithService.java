@@ -5,6 +5,7 @@ import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.repository.AudithRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+<<<<<<< HEAD
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -12,6 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+=======
+import org.springframework.stereotype.Service;
+>>>>>>> origin/Dev
 
 import java.time.DateTimeException;
 import java.time.LocalDateTime;
@@ -21,7 +25,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+<<<<<<< HEAD
 
+=======
+>>>>>>> origin/Dev
 @Service
 public class AudithService {
 
