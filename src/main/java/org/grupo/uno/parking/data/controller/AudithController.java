@@ -44,7 +44,7 @@ public class AudithController {
         try{
             Page<Audith> audithPage = audithService.getAllAudits(page, size);
             response.put(MESSAGE, "Users retrieved successfully");
-            response.put("users", audithPage.getContent());
+            response.put("audiths", audithPage.getContent());
             response.put("totalPages", audithPage.getTotalPages());
             response.put("currentPage", audithPage.getNumber());
             response.put("totalElements", audithPage.getTotalElements());
