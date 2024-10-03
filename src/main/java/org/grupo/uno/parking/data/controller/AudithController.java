@@ -5,6 +5,8 @@ import jakarta.validation.Valid;
 import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.service.AudithService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
@@ -16,10 +18,9 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
-import static sun.tools.jconsole.Messages.ERROR;
+
 
 @RestController
 @RequestMapping("/audith")
@@ -29,6 +30,8 @@ public class AudithController {
     @Autowired
     AudithService audithService;
 
+    private static final Logger logger = LoggerFactory.getLogger(AudithController.class);
+
     @Autowired
     public AudithController(AudithService audithService) {
         this.audithService = audithService;
@@ -36,21 +39,19 @@ public class AudithController {
 
     @RolesAllowed("AUDITH")
     @GetMapping("")
-    public ResponseEntity<Map<String, String>> getAllAudits(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
-          Map<String, String> response = new HashMap<>();
-           try{
-               Page<Audith> userPage = audithService.getAllAudits(page, size);
-               response.put(MESSAGE, "Users retrieved successfully");
-               response.put("users", userPage.getContent().toString());
-               response.put("totalPages", String.valueOf(userPage.getTotalPages()));
-               response.put("currentPage", String.valueOf(userPage.getNumber()));
-               response.put("totalElements", String.valueOf(userPage.getTotalElements()));
-               return ResponseEntity.ok(response);
-
-
-           }catch(Exception e){
-            response.put(MESSAGE, ERROR);
-            response.put("err", "An error get users " + e.getMessage());
+    public ResponseEntity<Map<String, Object>> getAllAudits(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Map<String, Object> response = new HashMap<>();
+        try{
+            Page<Audith> audithPage = audithService.getAllAudits(page, size);
+            response.put(MESSAGE, "Users retrieved successfully");
+            response.put("users", audithPage.getContent());
+            response.put("totalPages", audithPage.getTotalPages());
+            response.put("currentPage", audithPage.getNumber());
+            response.put("totalElements", audithPage.getTotalElements());
+            logger.info("Get users, audith: {}, elements: {}");
+            return ResponseEntity.ok(response);
+        }catch(Exception e){
+            response.put("err", "An error get audith " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }
