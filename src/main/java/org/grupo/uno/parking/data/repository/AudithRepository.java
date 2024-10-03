@@ -15,6 +15,8 @@ public interface AudithRepository extends JpaRepository<Audith, Long> {
 
     List<Audith> findByStartDateBetween(LocalDateTime startDate, LocalDateTime endDate);
 
+    List<Audith> findByEntityIgnoreCase(String entity);
+
     Optional<Audith> findById(Long id);
 
     List<Audith> findByOperation(String operation);

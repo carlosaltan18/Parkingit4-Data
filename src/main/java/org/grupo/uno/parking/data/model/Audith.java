@@ -19,8 +19,10 @@ public class Audith {
     private long auditId;
 
     private String entity;
+
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
     private LocalDateTime startDate;
+
     private String description;
     private String operation;
     private String result;
@@ -31,4 +33,3 @@ public class Audith {
     @Convert(converter = JsonbConverter.class)
     private Map<String, Object> response;
 }
-

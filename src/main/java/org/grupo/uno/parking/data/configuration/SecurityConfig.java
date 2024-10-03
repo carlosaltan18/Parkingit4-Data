@@ -39,6 +39,7 @@ public class SecurityConfig  {
                         .requestMatchers("/prueba/**").hasAnyRole(USER)
                         .requestMatchers("/fare/**").hasAnyRole(FARE, USER, AUDITH)
                         .requestMatchers("/parkings/**").hasAnyRole(PARKING, USER, AUDITH)
+                        .requestMatchers("/audith/**").hasAnyRole(AUDITH, USER)
                         .requestMatchers("/registers/**").hasAnyRole(REGISTER, USER, AUDITH)
                         .anyRequest().authenticated()
                 )

@@ -11,8 +11,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/registers")
 public class RegisterController {
@@ -21,48 +19,51 @@ public class RegisterController {
     private RegisterService registerService;
 
     @RolesAllowed("REGISTER")
-    @GetMapping("")
+    @GetMapping
     public ResponseEntity<Page<Register>> getAllRegisters(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Page<Register> registers = registerService.getAllRegisters(page, size);
-        return new ResponseEntity<>(registers, HttpStatus.OK);
+        return ResponseEntity.ok(registers);
     }
 
     @RolesAllowed("REGISTER")
     @GetMapping("/{id}")
     public ResponseEntity<Register> getRegisterById(@PathVariable Long id) {
-        Optional<Register> register = registerService.findById(id);
-        return register.map(value -> new ResponseEntity<>(value, HttpStatus.OK))
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        return registerService.findById(id)
+                .map(register -> ResponseEntity.ok(register))
+                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).build());
     }
 
     @RolesAllowed("REGISTER")
     @PostMapping("/saveRegister")
     public ResponseEntity<Register> createRegister(@RequestBody RegisterDTO registerDTO) {
         Register newRegister = registerService.saveRegister(registerDTO);
-        return new ResponseEntity<>(newRegister, HttpStatus.CREATED);
+        return ResponseEntity.status(HttpStatus.CREATED).body(newRegister);
     }
 
     @RolesAllowed("REGISTER")
     @PutMapping("/updateRegister/{id}")
-    public ResponseEntity<?> updateRegister(@PathVariable Long id, @RequestBody RegisterDTO registerDTO) {
+    public ResponseEntity<RegisterDTO> updateRegister(@PathVariable Long id, @RequestBody RegisterDTO registerDTO) {
         try {
-            registerService.updateRegister(registerDTO, id);
-            return new ResponseEntity<>(HttpStatus.OK);
+            RegisterDTO updatedRegister = registerService.updateRegister(registerDTO, id);
+            return ResponseEntity.ok(updatedRegister);
         } catch (IllegalArgumentException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.NOT_FOUND);
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     @RolesAllowed("REGISTER")
     @DeleteMapping("/deleteRegister/{id}")
-    public ResponseEntity<?> deleteRegister(@PathVariable Long id) {
+    public ResponseEntity<String> deleteRegister(@PathVariable Long id) {
         try {
             registerService.deleteRegister(id);
-            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+            return ResponseEntity.noContent().build();
         } catch (DataAccessException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error deleting register: " + e.getMessage());
         }
     }
 }

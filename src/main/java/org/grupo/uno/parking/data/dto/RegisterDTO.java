@@ -12,7 +12,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RegisterDTO {
-
     private long registerId;
     private String name;
     private String car;
@@ -20,8 +19,7 @@ public class RegisterDTO {
     private boolean status;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
-    private long parkingId;
-    private long fareId;
+    private long parkingId;  // Asegúrate de que es long y no Long
+    private long fareId;     // Asegúrate de que es long y no Long
     private BigDecimal total;
-
 }

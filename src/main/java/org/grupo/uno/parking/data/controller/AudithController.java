@@ -6,6 +6,7 @@ import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.service.AudithService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,7 +20,7 @@ import java.util.Optional;
 @RequestMapping("/audith")
 public class AudithController {
 
-    AudithService audithService;
+    private final AudithService audithService;
 
     @Autowired
     public AudithController(AudithService audithService) {
@@ -28,26 +29,27 @@ public class AudithController {
 
     @RolesAllowed("AUDITH")
     @GetMapping("")
-    public ResponseEntity<List<AudithDTO>> getAllAudits() {
-        List<Audith> audits = audithService.getAllAudits();
-        List<AudithDTO> auditDTOs = audits.stream().map(this::convertToDto).toList();
+    public ResponseEntity<List<AudithDTO>> getAllAudits(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        List<AudithDTO> auditDTOs = audithService.getAllAuditDTOs(page, size);
         return ResponseEntity.ok(auditDTOs);
     }
 
     @RolesAllowed("AUDITH")
     @GetMapping("/{id}")
     public ResponseEntity<AudithDTO> getAuditById(@PathVariable("id") long id) {
-        Optional<Audith> audit = audithService.getAuditById(id);
-        return audit.map(this::convertToDto)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        Audith audit = audithService.getAuditById(id);
+        return ResponseEntity.ok(convertToDto(audit));
     }
 
     @RolesAllowed("AUDITH")
     @GetMapping("/entity/{entity}")
     public ResponseEntity<List<AudithDTO>> getAuditsByEntity(@PathVariable("entity") String entity) {
         List<Audith> audits = audithService.getAuditsByEntity(entity);
-        List<AudithDTO> auditDTOs = audits.stream().map(this::convertToDto).toList();
+        List<AudithDTO> auditDTOs = audits.stream()
+                .map(this::convertToDto)
+                .toList();
         return ResponseEntity.ok(auditDTOs);
     }
 
@@ -77,6 +79,9 @@ public class AudithController {
     }
 
     private AudithDTO convertToDto(Audith audit) {
+        if (audit == null) {
+            return null;
+        }
         AudithDTO dto = new AudithDTO();
         dto.setAuditId(audit.getAuditId());
         dto.setEntity(audit.getEntity());
@@ -88,5 +93,4 @@ public class AudithController {
         dto.setResponse(audit.getResponse());
         return dto;
     }
-
 }

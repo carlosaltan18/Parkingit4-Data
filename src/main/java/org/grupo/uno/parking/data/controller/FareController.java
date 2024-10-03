@@ -31,7 +31,7 @@ public class FareController {
     private static final Logger logger = LoggerFactory.getLogger(FareController.class);
 
     @RolesAllowed("FARE")
-    @PostMapping("")
+    @PostMapping("/saveFare")
     public ResponseEntity<Map<String, String>> addFare(@RequestBody FareDto dto){
         Map<String, String> response = new HashMap<>();
         try{
@@ -106,7 +106,7 @@ public class FareController {
     }
 
     @RolesAllowed("FARE")
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/deleteFare/{id}")
     public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id){
         Map<String, String> response = new HashMap<>();
         try{
@@ -129,7 +129,7 @@ public class FareController {
     }
 
     @RolesAllowed("FARE")
-    @PutMapping("/{id}")
+    @PutMapping("/updateFare/{id}")
     public  ResponseEntity<Map<String, String>> updateFare(@PathVariable Long id, @RequestBody FareDto dto){
         Map<String, String> response = new HashMap<>();
         try{

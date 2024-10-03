@@ -16,7 +16,7 @@ public interface IRegisterService {
 
     Register saveRegister(RegisterDTO registerDTO);
 
-    void updateRegister(RegisterDTO registerDTO, Long registerId);
+    RegisterDTO updateRegister(RegisterDTO registerDTO, Long registerId);
 
     void deleteRegister(Long registerId);
 }

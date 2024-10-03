@@ -34,7 +34,7 @@ public class ParkingController {
     }
 
     @RolesAllowed("PARKING")
-    @GetMapping("/parking/{id}")
+    @GetMapping("/{id}")
     public ResponseEntity<Parking> getParkingById(@PathVariable("id") long id) {
         Optional<Parking> parking = parkingService.findById(id);
         return parking.map(ResponseEntity::ok)
@@ -42,7 +42,7 @@ public class ParkingController {
     }
 
     @RolesAllowed("PARKING")
-    @PostMapping("/parking/save")
+    @PostMapping("/saveParking")
     public ResponseEntity<Parking> createParking(@RequestBody ParkingDTO parkingDTO) {
         Parking parking = new Parking();
         updateParkingFieldsFromDTO(parking, parkingDTO);
@@ -51,7 +51,7 @@ public class ParkingController {
     }
 
     @RolesAllowed("PARKING")
-    @PutMapping("/parking/update/{id}")
+    @PutMapping("/parkingUpdate/{id}")
     public ResponseEntity<Parking> updateParking(@PathVariable("id") long id, @RequestBody ParkingDTO parkingDTO) {
         try {
             parkingService.updateParking(parkingDTO, id);
@@ -62,7 +62,7 @@ public class ParkingController {
     }
 
     @RolesAllowed("PARKING")
-    @DeleteMapping("/parking/delete/{id}")
+    @DeleteMapping("/parkingDelete/{id}")
     public ResponseEntity<Void> deleteParking(@PathVariable("id") long id) {
         try {
             parkingService.deleteParking(id);

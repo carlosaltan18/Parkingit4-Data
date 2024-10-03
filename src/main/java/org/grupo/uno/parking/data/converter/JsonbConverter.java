@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule; // Importa el módulo para manejar fechas y horas
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
@@ -18,8 +19,10 @@ import java.util.logging.Logger;
 public class JsonbConverter implements AttributeConverter<Map<String, Object>, String> {
 
     private static final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule()) // Registra el módulo para manejar LocalDateTime
             .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
             .configure(SerializationFeature.WRITE_NULL_MAP_VALUES, false);
+
     private static final Logger LOGGER = Logger.getLogger(JsonbConverter.class.getName());
 
     @Override
@@ -27,6 +30,10 @@ public class JsonbConverter implements AttributeConverter<Map<String, Object>, S
         if (attribute == null || attribute.isEmpty()) {
             return null;
         }
+
+        // Validar que todos los valores en el mapa son serializables
+        validateMap(attribute);
+
         try {
             return objectMapper.writeValueAsString(attribute);
         } catch (JsonProcessingException e) {
@@ -45,6 +52,19 @@ public class JsonbConverter implements AttributeConverter<Map<String, Object>, S
         } catch (IOException e) {
             LOGGER.log(Level.SEVERE, "Error converting JSON to map for entity. Data: {0}, Error: {1}", new Object[]{dbData, e.getMessage()});
             throw new IllegalArgumentException("Failed to convert JSON to map for entity", e);
+        }
+    }
+
+    // Método para validar que todos los valores en el mapa son serializables
+    private void validateMap(Map<String, Object> map) {
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            Object value = entry.getValue();
+            try {
+                // Intenta serializar el valor
+                objectMapper.writeValueAsString(value);
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("El valor no se puede serializar: " + entry.getValue(), e);
+            }
         }
     }
 }
