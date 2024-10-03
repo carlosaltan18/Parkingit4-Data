@@ -13,8 +13,13 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+
+import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
+import static sun.tools.jconsole.Messages.ERROR;
 
 @RestController
 @RequestMapping("/audith")
@@ -31,11 +36,23 @@ public class AudithController {
 
     @RolesAllowed("AUDITH")
     @GetMapping("")
-    public ResponseEntity<List<AudithDTO>> getAllAudits(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        List<AudithDTO> auditDTOs = audithService.getAllAuditDTOs(page, size);
-        return ResponseEntity.ok(auditDTOs);
+    public ResponseEntity<Map<String, String>> getAllAudits(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+          Map<String, String> response = new HashMap<>();
+           try{
+               Page<Audith> userPage = audithService.getAllAudits(page, size);
+               response.put(MESSAGE, "Users retrieved successfully");
+               response.put("users", userPage.getContent().toString());
+               response.put("totalPages", String.valueOf(userPage.getTotalPages()));
+               response.put("currentPage", String.valueOf(userPage.getNumber()));
+               response.put("totalElements", String.valueOf(userPage.getTotalElements()));
+               return ResponseEntity.ok(response);
+
+
+           }catch(Exception e){
+            response.put(MESSAGE, ERROR);
+            response.put("err", "An error get users " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @RolesAllowed("AUDITH")
