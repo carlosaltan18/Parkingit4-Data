@@ -20,12 +20,9 @@ import java.util.Optional;
 @RequestMapping("/audith")
 public class AudithController {
 
-<<<<<<< HEAD
-    private final AudithService audithService;
-=======
+
     @Autowired
     AudithService audithService;
->>>>>>> origin/Dev
 
     @Autowired
     public AudithController(AudithService audithService) {
