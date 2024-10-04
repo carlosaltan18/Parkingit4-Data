@@ -52,15 +52,15 @@ public class FareController {
 
     @RolesAllowed("FARE")
     @GetMapping("")
-    public ResponseEntity<Map<String, String>> getAllFares(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> getAllFares(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+        Map<String, Object> response = new HashMap<>();
         try{
             Page<Fare> fares = fareService.getAllFares(page, size);
             response.put(MESSAGE, "fares retrieved successfully");
-            response.put("users", fares.getContent().toString());
-            response.put("totalPages", String.valueOf(fares.getTotalPages()));
-            response.put("currentPage", String.valueOf(fares.getNumber()));
-            response.put("totalElements", String.valueOf(fares.getTotalElements()));
+            response.put("users", fares.getContent());
+            response.put("totalPages", fares.getTotalPages());
+            response.put("currentPage", fares.getNumber());
+            response.put("totalElements", fares.getTotalElements());
             logger.info("Fares get with exit pages: {}, elements: {}",page, fares.getTotalElements());
             return ResponseEntity.ok(response);
         }catch (Exception e){
@@ -73,11 +73,11 @@ public class FareController {
 
     @RolesAllowed("FARE")
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, String>> getFareId(@PathVariable Long id){
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> getFareId(@PathVariable Long id){
+        Map<String, Object> response = new HashMap<>();
         try{
             Optional<Fare> fares = fareService.findFareById(id);
-            response.put(MESSAGE, fares.toString());
+            response.put(MESSAGE, fares.get());
             logger.info("FARE find {} is correct", id);
             return ResponseEntity.ok(response);
         }catch (Exception e){
@@ -90,11 +90,11 @@ public class FareController {
 
     @RolesAllowed("FARE")
     @GetMapping("/name/{name}")
-    public ResponseEntity<Map<String, String>> getFareName(@PathVariable String name){
-        Map<String, String> response = new HashMap<>();
+    public ResponseEntity<Map<String, Object>> getFareName(@PathVariable String name){
+        Map<String, Object> response = new HashMap<>();
         try{
             Optional<Fare> fares = fareService.findByName(name);
-            response.put(MESSAGE, fares.toString());
+            response.put(MESSAGE, fares.get());
             logger.info("FARE find with name:  {} is correct", name);
             return ResponseEntity.ok(response);
         }catch (Exception e){
