@@ -16,10 +16,8 @@ import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
-import static sun.tools.jconsole.Messages.ERROR;
 
 @RestController
 @RequestMapping("/audith")
@@ -49,7 +47,7 @@ public class AudithController {
 
 
            }catch(Exception e){
-            response.put(MESSAGE, ERROR);
+            response.put(MESSAGE, "ERROR");
             response.put("err", "An error get users " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
