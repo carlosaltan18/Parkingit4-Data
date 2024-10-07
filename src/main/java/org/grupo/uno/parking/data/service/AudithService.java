@@ -25,6 +25,7 @@ import java.util.stream.Collectors;
 public class AudithService {
 
     private static final Logger logger = LoggerFactory.getLogger(AudithService.class);
+    private static final int MAX_LENGTH = 255; // Definir longitud máxima
 
     private final AudithRepository audithRepository;
 
@@ -37,6 +38,12 @@ public class AudithService {
                               Map<String, Object> request, Map<String, Object> response, String result) {
         validateAuditParameters(entity, description, operation);
         logger.info("Creating audit for entity: {}, operation: {}", entity, operation);
+
+        // Recortar los valores que exceden la longitud máxima
+        description = truncateIfNecessary(description);
+        request = truncateMapValuesIfNecessary(request);
+        response = truncateMapValuesIfNecessary(response);
+        result = truncateIfNecessary(result);
 
         Audith audit = new Audith();
         audit.setEntity(entity);
@@ -136,5 +143,28 @@ public class AudithService {
             logger.error("Operation parameter is empty.");
             throw new ValidationException("La operación no puede estar vacía.");
         }
+    }
+
+    private String truncateIfNecessary(String value) {
+        if (value != null && value.length() > MAX_LENGTH) {
+            logger.warn("Truncating value: {} to maximum length of {}", value, MAX_LENGTH);
+            return value.substring(0, MAX_LENGTH);
+        }
+        return value;
+    }
+
+    private Map<String, Object> truncateMapValuesIfNecessary(Map<String, Object> map) {
+        if (map != null) {
+            map.forEach((key, value) -> {
+                if (value instanceof String) {
+                    String strValue = (String) value;
+                    if (strValue.length() > MAX_LENGTH) {
+                        logger.warn("Truncating map value for key: {} to maximum length of {}", key, MAX_LENGTH);
+                        map.put(key, strValue.substring(0, MAX_LENGTH));
+                    }
+                }
+            });
+        }
+        return map;
     }
 }
