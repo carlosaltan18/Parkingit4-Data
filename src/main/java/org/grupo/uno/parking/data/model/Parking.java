@@ -1,5 +1,6 @@
 package org.grupo.uno.parking.data.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -17,13 +18,18 @@ public class Parking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "parking_id")
     private long parkingId;
+
     private String name;
     private String address;
     private String phone;
     private int spaces;
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    private User userId;
+
+    // Relación ManyToOne con la tabla User
+    @ManyToOne(fetch = FetchType.LAZY, optional = false) // El 'optional = false' evita valores nulos en user_id
+    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false) // Agregado nullable = false para requerir siempre un user_id
+    @JsonIgnore // Esto evita que se serialice el usuario en la respuesta
+    private User user;
+
     private Boolean status;
 
     @Override
@@ -34,7 +40,7 @@ public class Parking {
                 ", address='" + address + '\'' +
                 ", phone='" + phone + '\'' +
                 ", spaces=" + spaces +
-                ", user=" + userId +
+                ", userId=" + (user != null ? user.getUserId() : "null") + // Asegúrate de verificar si user es nulo
                 ", status=" + status +
                 '}';
     }

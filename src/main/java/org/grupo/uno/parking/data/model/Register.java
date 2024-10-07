@@ -1,5 +1,6 @@
 package org.grupo.uno.parking.data.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -40,15 +41,17 @@ public class Register {
     @Column(name = "end_date")
     private LocalDateTime endDate;
 
+    // Evitar la serialización de esta relación para prevenir el error
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parking_id", referencedColumnName = "parking_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Parking parking;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "fare_id", referencedColumnName = "fare_id")
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Fare fare;
 
     @Column(name = "total", precision = 10, scale = 2)
     private BigDecimal total;
-
 }

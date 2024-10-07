@@ -4,7 +4,9 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.ParkingDTO;
 import org.grupo.uno.parking.data.model.Parking;
+import org.grupo.uno.parking.data.model.User;
 import org.grupo.uno.parking.data.service.ParkingService;
+import org.grupo.uno.parking.data.repository.UserRepository; // Importa el repositorio
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
@@ -19,10 +21,12 @@ import java.util.Optional;
 public class ParkingController {
 
     private final ParkingService parkingService;
+    private final UserRepository userRepository; // Agregamos el repositorio de usuarios
 
     @Autowired
-    public ParkingController(ParkingService parkingService) {
+    public ParkingController(ParkingService parkingService, UserRepository userRepository) {
         this.parkingService = parkingService;
+        this.userRepository = userRepository;
     }
 
     @RolesAllowed("PARKING")
@@ -74,12 +78,19 @@ public class ParkingController {
         }
     }
 
-
     private void updateParkingFieldsFromDTO(Parking parking, ParkingDTO parkingDTO) {
         parking.setName(parkingDTO.getName());
         parking.setAddress(parkingDTO.getAddress());
         parking.setPhone(parkingDTO.getPhone());
         parking.setSpaces(parkingDTO.getSpaces());
         parking.setStatus(parkingDTO.getStatus());
+
+        if (parkingDTO.getUserId() != 0) {
+            // Buscar el usuario directamente en el repositorio
+            User user = userRepository.findById(parkingDTO.getUserId()).orElseThrow(() -> {
+                throw new EntityNotFoundException("User with id: " + parkingDTO.getUserId() + " not found");
+            });
+            parking.setUser(user);
+        }
     }
 }

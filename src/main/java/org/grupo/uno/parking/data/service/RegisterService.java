@@ -1,8 +1,6 @@
 package org.grupo.uno.parking.data.service;
 
 import org.grupo.uno.parking.data.dto.RegisterDTO;
-import org.grupo.uno.parking.data.model.Fare;
-import org.grupo.uno.parking.data.model.Parking;
 import org.grupo.uno.parking.data.model.Register;
 import org.grupo.uno.parking.data.repository.FareRepository;
 import org.grupo.uno.parking.data.repository.ParkingRepository;
@@ -17,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -35,26 +34,42 @@ public class RegisterService implements IRegisterService {
     private FareRepository fareRepository;
 
     @Autowired
-    private AudithService audithService; // Inyección del servicio de auditoría
+    private AudithService audithService;
 
     @Override
-    public Page<Register> getAllRegisters(int page, int size) {
-        logger.info("Fetching all registers - Page: {}, Size: {}", page, size);
+    public Page<RegisterDTO> getAllRegisters(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return registerRepository.findAll(pageable);
+        Page<Register> registers = registerRepository.findAll(pageable);
+
+        Page<RegisterDTO> registerDTOs = registers.map(this::convertToDTO);
+
+        // Auditar la recuperación de registros
+        audithService.createAudit(
+                "Register",
+                "Retrieved all registers",
+                "READ",
+                null,
+                convertPageToMap(registerDTOs),
+                "SUCCESS"
+        );
+
+        logger.info("Total registers retrieved: {}", registers.getTotalElements());
+        return registerDTOs;
     }
 
     @Override
-    public Optional<Register> findById(Long registerId) {
+    public Optional<RegisterDTO> findById(Long registerId) {
         logger.info("Finding register by ID: {}", registerId);
-        return registerRepository.findById(registerId);
+        return registerRepository.findById(registerId).map(this::convertToDTO);
     }
 
     @Override
-    public Register saveRegister(RegisterDTO registerDTO) {
+    public RegisterDTO saveRegister(RegisterDTO registerDTO) {
         logger.info("Saving new register with details: {}", registerDTO);
         Register register = convertToEntity(registerDTO);
         Register savedRegister = registerRepository.save(register);
+
+        RegisterDTO savedDTO = convertToDTO(savedRegister);
 
         // Guardar la auditoría de creación
         audithService.createAudit(
@@ -62,11 +77,12 @@ public class RegisterService implements IRegisterService {
                 "Registro creado",
                 "CREATE",
                 convertDTOToMap(registerDTO),
-                convertEntityToMap(savedRegister),
+                convertDTOToMap(savedDTO),
                 "SUCCESS"
         );
+
         logger.info("Register saved successfully with ID: {}", savedRegister.getRegisterId());
-        return savedRegister;
+        return savedDTO;
     }
 
     @Override
@@ -77,7 +93,9 @@ public class RegisterService implements IRegisterService {
         if (optionalRegister.isPresent()) {
             Register register = optionalRegister.get();
             updateRegisterFields(register, registerDTO);
-            registerRepository.save(register);
+            Register updatedRegister = registerRepository.save(register);
+
+            RegisterDTO updatedDTO = convertToDTO(updatedRegister);
 
             // Guardar la auditoría de actualización
             audithService.createAudit(
@@ -85,15 +103,15 @@ public class RegisterService implements IRegisterService {
                     "Registro actualizado",
                     "UPDATE",
                     convertDTOToMap(registerDTO),
-                    convertEntityToMap(register),
+                    convertDTOToMap(updatedDTO),
                     "SUCCESS"
             );
             logger.info("Register updated successfully with ID: {}", registerId);
+            return updatedDTO;
         } else {
             logger.error("Register with ID {} not found.", registerId);
             throw new IllegalArgumentException("Register with ID " + registerId + " not found.");
         }
-        return registerDTO;
     }
 
     @Override
@@ -125,7 +143,34 @@ public class RegisterService implements IRegisterService {
         }
     }
 
-    // Métodos adicionales...
+    @Override
+    public List<RegisterDTO> generateReportByParkingId(Long parkingId) {
+        logger.info("Generating report for parking ID: {}", parkingId);
+
+        List<Register> registers = registerRepository.findByParking_ParkingId(parkingId);
+        if (registers.isEmpty()) {
+            logger.warn("No registers found for parking ID: {}", parkingId);
+            throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
+        }
+
+        // Convertir los registros a DTO
+        List<RegisterDTO> registerDTOs = registers.stream()
+                .map(this::convertToDTO)
+                .toList();
+
+        // Auditar la generación del reporte
+        audithService.createAudit(
+                "Register",
+                "Generated report for parking ID: " + parkingId,
+                "REPORT",
+                null,
+                convertListToMap(registerDTOs),
+                "SUCCESS"
+        );
+
+        logger.info("Report generated successfully for parking ID: {}", parkingId);
+        return registerDTOs;
+    }
 
     private Register convertToEntity(RegisterDTO registerDTO) {
         logger.debug("Converting RegisterDTO to Register entity: {}", registerDTO);
@@ -138,15 +183,31 @@ public class RegisterService implements IRegisterService {
         register.setEndDate(registerDTO.getEndDate());
         register.setTotal(registerDTO.getTotal());
 
-        // Asignar Parking si existe
-        Optional<Parking> parking = parkingRepository.findById(registerDTO.getParkingId());
-        parking.ifPresent(register::setParking);
-
-        // Asignar Fare si existe
-        Optional<Fare> fare = fareRepository.findById(registerDTO.getFareId());
-        fare.ifPresent(register::setFare);
+        parkingRepository.findById(registerDTO.getParkingId()).ifPresent(register::setParking);
+        fareRepository.findById(registerDTO.getFareId()).ifPresent(register::setFare);
 
         return register;
+    }
+
+    private RegisterDTO convertToDTO(Register register) {
+        if (register == null) {
+            logger.error("Register entity is null.");
+            throw new IllegalArgumentException("Register cannot be null");
+        }
+
+        logger.debug("Converting Register entity to RegisterDTO: ID: {}", register.getRegisterId());
+        return new RegisterDTO(
+                register.getRegisterId(),
+                register.getName(),
+                register.getCar(),
+                register.getPlate(),
+                register.isStatus(),
+                register.getStartDate(),
+                register.getEndDate(),
+                register.getParking() != null ? register.getParking().getParkingId() : null,
+                register.getFare() != null ? register.getFare().getFareId() : null,
+                register.getTotal()
+        );
     }
 
     private void updateRegisterFields(Register register, RegisterDTO registerDTO) {
@@ -165,6 +226,7 @@ public class RegisterService implements IRegisterService {
 
     private Map<String, Object> convertDTOToMap(RegisterDTO registerDTO) {
         Map<String, Object> map = new HashMap<>();
+        map.put("registerId", registerDTO.getRegisterId());
         map.put("name", registerDTO.getName());
         map.put("car", registerDTO.getCar());
         map.put("plate", registerDTO.getPlate());
@@ -189,6 +251,22 @@ public class RegisterService implements IRegisterService {
         map.put("total", register.getTotal());
         map.put("parkingId", register.getParking() != null ? register.getParking().getParkingId() : null);
         map.put("fareId", register.getFare() != null ? register.getFare().getFareId() : null);
+        return map;
+    }
+
+    private Map<String, Object> convertPageToMap(Page<RegisterDTO> registerDTOs) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("registers", registerDTOs.getContent());
+        map.put("totalElements", registerDTOs.getTotalElements());
+        map.put("totalPages", registerDTOs.getTotalPages());
+        map.put("currentPage", registerDTOs.getNumber());
+        return map;
+    }
+
+    private Map<String, Object> convertListToMap(List<RegisterDTO> registerDTOs) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("registers", registerDTOs);
+        map.put("total", registerDTOs.size());
         return map;
     }
 }

@@ -65,6 +65,11 @@ public class ParkingService implements IParkingService {
 
     @Override
     public Parking saveParking(Parking parking) {
+        // Verificar si el user está presente antes de guardar
+        if (parking.getUser() == null) {
+            throw new IllegalArgumentException("User must be provided when saving a parking.");
+        }
+
         logger.info("Saving new parking with details: {}", parking);
         Parking savedParking = parkingRepository.save(parking);
 
@@ -111,13 +116,14 @@ public class ParkingService implements IParkingService {
         parking.setSpaces(parkingDTO.getSpaces());
         parking.setStatus(parkingDTO.getStatus());
 
+        // Actualizar el usuario solo si se proporciona un userId en el DTO
         if (parkingDTO.getUserId() != 0) {
             User user = userRepository.findById(parkingDTO.getUserId())
                     .orElseThrow(() -> {
                         logger.error("User with ID {} does not exist", parkingDTO.getUserId());
                         return new EntityNotFoundException("User with id: " + parkingDTO.getUserId() + " does not exist");
                     });
-            parking.setUserId(user);
+            parking.setUser(user);
         }
     }
 
