@@ -26,7 +26,6 @@ public class RegisterDTO implements Serializable {
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 
-    // Usamos solo los IDs en lugar de las entidades completas
     private long parkingId;
     private long fareId;
 

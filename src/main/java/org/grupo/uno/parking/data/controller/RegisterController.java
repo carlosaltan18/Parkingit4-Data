@@ -1,23 +1,34 @@
 package org.grupo.uno.parking.data.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.security.RolesAllowed;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
 import org.grupo.uno.parking.data.service.IRegisterService;
+import org.grupo.uno.parking.data.service.PdfService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/registers")
 public class RegisterController {
+    private static final Logger logger = LoggerFactory.getLogger(RegisterController.class);
 
     @Autowired
     private IRegisterService registerService;
+    @Autowired
+    private PdfService pdfService;
 
     @RolesAllowed("REGISTER")
     @GetMapping("")
@@ -86,6 +97,38 @@ public class RegisterController {
             List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId);
             return new ResponseEntity<>(registers, HttpStatus.OK);
         } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    @RolesAllowed("REGISTER")
+    @PostMapping("/generatePDF/{parkingId}")
+    public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId) {
+        logger.info("Generating PDF for parkingId: {}", parkingId);
+        try {
+            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId);
+            logger.info("Retrieved {} registers", registers.size());
+
+            // Configuración del ObjectMapper
+            ObjectMapper objectMapper = new ObjectMapper();
+            objectMapper.registerModule(new JavaTimeModule()); // Añadir módulo para manejar LocalDateTime
+            String json = objectMapper.writeValueAsString(registers);
+            logger.debug("Generated JSON: {}", json);
+
+            byte[] pdfBytes = pdfService.generatePdfFromJson(json);
+            logger.info("PDF generated successfully");
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("filename", "register.pdf");
+
+            return ResponseEntity.ok()
+                    .headers(headers)
+                    .body(pdfBytes);
+        } catch (JsonProcessingException e) {
+            logger.error("Error processing JSON: ", e);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST); // 400 si el JSON es inválido
+        } catch (Exception e) {
+            logger.error("Error generating PDF: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
