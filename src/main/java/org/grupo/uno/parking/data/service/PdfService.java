@@ -25,7 +25,7 @@ public class PdfService {
 
     private static final int NUMBER_OF_COLUMNS = 7;
 
-    public byte[] generatePdfFromJson(String json) throws Exception {
+    public byte[] generatePdfFromJson(String json) throws RuntimeException {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
@@ -33,7 +33,7 @@ public class PdfService {
         try {
             registers = objectMapper.readValue(json, new TypeReference<List<RegisterDTO>>() {});
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JSON to RegisterDTO list", e);
+            throw new RuntimeException("Failed to parse JSON to RegisterDTO", e);
         }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -84,7 +84,7 @@ public class PdfService {
                     .setMarginTop(20);
             document.add(footer);
         } catch (Exception e) {
-            throw new RuntimeException("Error while generating PDF", e);
+            throw new RuntimeException("Error generating PDF", e);
         }
 
         return byteArrayOutputStream.toByteArray();
