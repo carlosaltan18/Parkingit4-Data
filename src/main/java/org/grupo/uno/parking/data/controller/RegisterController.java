@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.security.RolesAllowed;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
+import org.grupo.uno.parking.data.exceptions.NoRegistersFoundException;
 import org.grupo.uno.parking.data.service.IRegisterService;
 import org.grupo.uno.parking.data.service.PdfService;
 import org.slf4j.Logger;
@@ -100,17 +101,18 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
     @RolesAllowed("REGISTER")
     @PostMapping("/generatePDF/{parkingId}")
     public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId) {
         logger.info("Generating PDF for parkingId: {}", parkingId);
         try {
-            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId);
-            logger.info("Retrieved {} registers", registers.size());
-
-            // Configuración del ObjectMapper
+            List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId);
+            if (registers == null) {
+                throw new NoRegistersFoundException("No registers found for parkingId: " + parkingId);
+            }
             ObjectMapper objectMapper = new ObjectMapper();
-            objectMapper.registerModule(new JavaTimeModule()); // Añadir módulo para manejar LocalDateTime
+            objectMapper.registerModule(new JavaTimeModule());
             String json = objectMapper.writeValueAsString(registers);
             logger.debug("Generated JSON: {}", json);
 
@@ -119,17 +121,20 @@ public class RegisterController {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("filename", "register.pdf");
+            headers.setContentDispositionFormData("attachment", "register.pdf");
 
             return ResponseEntity.ok()
                     .headers(headers)
                     .body(pdfBytes);
+        } catch (NoRegistersFoundException e) {
+            logger.error("Error generating PDF: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         } catch (JsonProcessingException e) {
             logger.error("Error processing JSON: ", e);
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST); // 400 si el JSON es inválido
+            return ResponseEntity.badRequest().build();
         } catch (Exception e) {
             logger.error("Error generating PDF: ", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 }

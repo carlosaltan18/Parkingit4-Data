@@ -172,6 +172,35 @@ public class RegisterService implements IRegisterService {
         return registerDTOs;
     }
 
+    @Override
+    public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId) {
+        logger.info("Generating report for parking ID: {}", parkingId);
+
+        List<Register> registers = registerRepository.findActiveRegistersByParkingId(parkingId);
+        if (registers.isEmpty()) {
+            logger.warn("No registers found for parking ID: {}", parkingId);
+            throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
+        }
+
+        // Convertir los registros a DTO
+        List<RegisterDTO> registerDTOs = registers.stream()
+                .map(this::convertToDTO)
+                .toList();
+
+        // Auditar la generación del reporte
+        audithService.createAudit(
+                "Register",
+                "Generated report for parking ID: " + parkingId,
+                "REPORT",
+                null,
+                convertListToMap(registerDTOs),
+                "SUCCESS"
+        );
+
+        logger.info("Report generated successfully for parking ID: {}", parkingId);
+        return registerDTOs;
+    }
+
     private Register convertToEntity(RegisterDTO registerDTO) {
         logger.debug("Converting RegisterDTO to Register entity: {}", registerDTO);
         Register register = new Register();

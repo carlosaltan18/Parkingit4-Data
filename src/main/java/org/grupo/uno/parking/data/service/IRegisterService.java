@@ -24,4 +24,6 @@ public interface IRegisterService {
     void deleteRegister(Long registerId);
 
     List<RegisterDTO> generateReportByParkingId(Long parkingId);
+
+    List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId);
 }
