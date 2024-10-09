@@ -36,15 +36,12 @@ public class PdfService {
             throw new RuntimeException("Failed to parse JSON to RegisterDTO list", e);
         }
 
-        // Crear un ByteArrayOutputStream para guardar el PDF
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
 
-        // Crear un PdfWriter y un PdfDocument
         try (PdfWriter pdfWriter = new PdfWriter(byteArrayOutputStream);
              PdfDocument pdfDocument = new PdfDocument(pdfWriter);
              Document document = new Document(pdfDocument)) {
 
-            // Título del PDF
             Paragraph title = new Paragraph("Registro de Vehículos")
                     .setFontSize(18)
                     .setBold()
@@ -52,11 +49,9 @@ public class PdfService {
                     .setMarginBottom(20);
             document.add(title);
 
-            // Crear una tabla para los registros
-            Table table = new Table(NUMBER_OF_COLUMNS);
-            table.setWidth(UnitValue.createPercentValue(100)); // Ancho de la tabla al 100%
 
-            // Estilos de encabezados
+            Table table = new Table(NUMBER_OF_COLUMNS);
+            table.setWidth(UnitValue.createPercentValue(100));
             for (String header : new String[]{"Register ID", "Name", "Car", "Plate", "Total", "Start Date", "End Date"}) {
                 Cell headerCell = new Cell().add(new Paragraph(header))
                         .setBold()
@@ -66,18 +61,20 @@ public class PdfService {
                 table.addHeaderCell(headerCell);
             }
 
-            // Formateador para la fecha
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-            // Agregar los registros a la tabla
             for (RegisterDTO register : registers) {
                 table.addCell(new Cell().add(new Paragraph(String.valueOf(register.getRegisterId()))));
                 table.addCell(new Cell().add(new Paragraph(register.getName())));
                 table.addCell(new Cell().add(new Paragraph(register.getCar())));
                 table.addCell(new Cell().add(new Paragraph(register.getPlate())));
-                table.addCell(new Cell().add(new Paragraph(register.getTotal().toString())));
+                if (register.getTotal() != null){
+                    table.addCell(new Cell().add(new Paragraph(register.getTotal().toString())));
+                }
                 table.addCell(new Cell().add(new Paragraph(register.getStartDate().format(formatter))));
-                table.addCell(new Cell().add(new Paragraph(register.getEndDate().format(formatter))));
+                if(register.getEndDate() != null){
+                    table.addCell(new Cell().add(new Paragraph(register.getEndDate().format(formatter))));
+                }
             }
 
             document.add(table);
