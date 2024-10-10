@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -92,10 +93,10 @@ public class RegisterController {
 
     // Nuevo endpoint para obtener registros por ID de estacionamiento
     @RolesAllowed("REGISTER")
-    @GetMapping("/report/{parkingId}")
-    public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId) {
+    @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
+    public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate) {
         try {
-            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId);
+            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDate, endDate);
             return new ResponseEntity<>(registers, HttpStatus.OK);
         } catch (Exception e) {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
@@ -103,11 +104,11 @@ public class RegisterController {
     }
 
     @RolesAllowed("REGISTER")
-    @PostMapping("/generatePDF/{parkingId}")
-    public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId) {
+    @PostMapping("/generatePDF/{parkingId}/{startDate}/{endDate}")
+    public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate) {
         logger.info("Generating PDF for parkingId: {}", parkingId);
         try {
-            List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId);
+            List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId, startDate, endDate);
             if (registers == null) {
                 throw new NoRegistersFoundException("No registers found for parkingId: " + parkingId);
             }

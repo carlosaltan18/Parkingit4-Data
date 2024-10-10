@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
+
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -146,10 +148,10 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public List<RegisterDTO> generateReportByParkingId(Long parkingId) {
+    public List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         logger.info("Generating report for parking ID: {}", parkingId);
 
-        List<Register> registers = registerRepository.findByParking_ParkingId(parkingId);
+        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
@@ -175,10 +177,10 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId) {
+    public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         logger.info("Generating PDF report for parking ID: {}", parkingId);
 
-        List<Register> registers = registerRepository.findActiveRegistersByParkingId(parkingId);
+        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);

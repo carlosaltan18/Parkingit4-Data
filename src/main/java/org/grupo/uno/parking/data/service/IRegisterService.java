@@ -3,6 +3,7 @@ package org.grupo.uno.parking.data.service;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
 import org.springframework.data.domain.Page;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,7 +24,7 @@ public interface IRegisterService {
     // No requiere cambios, pues trabaja con el ID
     void deleteRegister(Long registerId);
 
-    List<RegisterDTO> generateReportByParkingId(Long parkingId);
+    List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
 
-    List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId);
+    List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
 }
