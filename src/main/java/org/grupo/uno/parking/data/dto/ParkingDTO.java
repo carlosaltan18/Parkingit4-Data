@@ -27,10 +27,6 @@ public class ParkingDTO {
     @Min(value = 1, message = "The number of spaces must be at least 1")
     private int spaces;
 
-    @NotNull(message = "User ID cannot be null")
-    @Min(value = 1, message = "User ID must be a positive number")
-    private long userId;
-
     @NotNull(message = "Status cannot be null")
     private Boolean status;
 }

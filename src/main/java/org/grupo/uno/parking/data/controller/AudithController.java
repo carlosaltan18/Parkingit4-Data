@@ -3,57 +3,51 @@ package org.grupo.uno.parking.data.controller;
 import jakarta.annotation.security.RolesAllowed;
 import jakarta.validation.Valid;
 import org.grupo.uno.parking.data.dto.AudithDTO;
+import org.grupo.uno.parking.data.dto.DateRangeRequest;
 import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.service.AudithService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
 
-
 @RestController
 @RequestMapping("/audith")
 public class AudithController {
 
-
     @Autowired
-    AudithService audithService;
+    private AudithService audithService;
 
     private static final Logger logger = LoggerFactory.getLogger(AudithController.class);
 
-    @Autowired
-    public AudithController(AudithService audithService) {
-        this.audithService = audithService;
-    }
-
-
-
     @RolesAllowed("AUDITH")
     @GetMapping("")
-    public ResponseEntity<Map<String, Object>> getAllAudits(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Map<String, Object>> getAllAudits(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
         Map<String, Object> response = new HashMap<>();
-        try{
+        try {
             Page<Audith> audithPage = audithService.getAllAudits(page, size);
-            response.put(MESSAGE, "Users retrieved successfully");
+            response.put(MESSAGE, "Auditorías recuperadas exitosamente");
             response.put("audiths", audithPage.getContent());
             response.put("totalPages", audithPage.getTotalPages());
             response.put("currentPage", audithPage.getNumber());
             response.put("totalElements", audithPage.getTotalElements());
-            logger.info("Get users, audith: {}, elements: {}");
+            logger.info("Get audits, total elements: {}, current page: {}", audithPage.getTotalElements(), audithPage.getNumber());
             return ResponseEntity.ok(response);
-        }catch(Exception e){
-            response.put("err", "An error get audith " + e.getMessage());
+        } catch (Exception e) {
+            response.put("err", "Error al recuperar auditorías: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
     }
@@ -74,6 +68,31 @@ public class AudithController {
                 .toList();
         return ResponseEntity.ok(auditDTOs);
     }
+
+    @RolesAllowed("AUDITH")
+    @PostMapping("/date-range")
+    public ResponseEntity<List<AudithDTO>> getAuditsByDateRange(@RequestBody DateRangeRequest dateRangeRequest) {
+        try {
+            // Asegúrate de que el formato de fecha sea el esperado
+            LocalDateTime startDate = LocalDateTime.parse(dateRangeRequest.getStartDate());
+            LocalDateTime endDate = LocalDateTime.parse(dateRangeRequest.getEndDate());
+            List<Audith> audits = audithService.getAuditsByDateRange(startDate, endDate);
+            List<AudithDTO> auditDTOs = audits.stream()
+                    .map(this::convertToDto)
+                    .toList();
+            return ResponseEntity.ok(auditDTOs);
+        } catch (DateTimeParseException e) {
+            logger.error("Error al analizar las fechas: {}", e.getMessage());
+            return ResponseEntity.badRequest().body(null);
+        } catch (Exception e) {
+            logger.error("Error recuperando auditorías por rango de fechas: {}", e.getMessage());
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+
+
+
 
     @RolesAllowed("AUDITH")
     @PostMapping("/manual")

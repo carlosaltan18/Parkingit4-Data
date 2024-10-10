@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,6 @@ public class RegisterService implements IRegisterService {
     public Page<RegisterDTO> getAllRegisters(int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Register> registers = registerRepository.findAll(pageable);
-
         Page<RegisterDTO> registerDTOs = registers.map(this::convertToDTO);
 
         // Auditar la recuperación de registros
@@ -64,7 +64,8 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public RegisterDTO saveRegister(RegisterDTO registerDTO) {
+    public RegisterDTO saveRegister(@Valid RegisterDTO registerDTO) {
+        validateRegister(registerDTO);
         logger.info("Saving new register with details: {}", registerDTO);
         Register register = convertToEntity(registerDTO);
         Register savedRegister = registerRepository.save(register);
@@ -86,7 +87,8 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public RegisterDTO updateRegister(RegisterDTO registerDTO, Long registerId) {
+    public RegisterDTO updateRegister(@Valid RegisterDTO registerDTO, Long registerId) {
+        validateRegister(registerDTO);
         logger.info("Updating register with ID: {}", registerId);
         Optional<Register> optionalRegister = registerRepository.findById(registerId);
 
@@ -174,7 +176,7 @@ public class RegisterService implements IRegisterService {
 
     @Override
     public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId) {
-        logger.info("Generating report for parking ID: {}", parkingId);
+        logger.info("Generating PDF report for parking ID: {}", parkingId);
 
         List<Register> registers = registerRepository.findActiveRegistersByParkingId(parkingId);
         if (registers.isEmpty()) {
@@ -190,15 +192,41 @@ public class RegisterService implements IRegisterService {
         // Auditar la generación del reporte
         audithService.createAudit(
                 "Register",
-                "Generated report for parking ID: " + parkingId,
+                "Generated PDF report for parking ID: " + parkingId,
                 "REPORT",
                 null,
                 convertListToMap(registerDTOs),
                 "SUCCESS"
         );
 
-        logger.info("Report generated successfully for parking ID: {}", parkingId);
+        logger.info("PDF report generated successfully for parking ID: {}", parkingId);
         return registerDTOs;
+    }
+
+    private void validateRegister(RegisterDTO registerDTO) {
+        // Validaciones
+        if (registerDTO.getName() == null || registerDTO.getName().isEmpty()) {
+            throw new IllegalArgumentException("El nombre no puede estar vacío.");
+        }
+        if (registerDTO.getCar() == null || registerDTO.getCar().isEmpty()) {
+            throw new IllegalArgumentException("El campo 'car' no puede estar vacío.");
+        }
+        if (registerDTO.getPlate() == null || registerDTO.getPlate().isEmpty()) {
+            throw new IllegalArgumentException("El campo 'plate' no puede estar vacío.");
+        }
+        if (registerDTO.getStartDate() == null) {
+            throw new IllegalArgumentException("La fecha de inicio no puede estar vacía.");
+        }
+        if (registerDTO.getEndDate() == null) {
+            throw new IllegalArgumentException("La fecha de finalización no puede estar vacía.");
+        }
+        // Validar la existencia de parking y tarifa
+        if (!parkingRepository.existsById(registerDTO.getParkingId())) {
+            throw new IllegalArgumentException("Parking con ID " + registerDTO.getParkingId() + " no encontrado.");
+        }
+        if (!fareRepository.existsById(registerDTO.getFareId())) {
+            throw new IllegalArgumentException("Fare con ID " + registerDTO.getFareId() + " no encontrado.");
+        }
     }
 
     private Register convertToEntity(RegisterDTO registerDTO) {
@@ -240,7 +268,7 @@ public class RegisterService implements IRegisterService {
     }
 
     private void updateRegisterFields(Register register, RegisterDTO registerDTO) {
-        logger.debug("Updating register fields for ID: {}", register.getRegisterId());
+        logger.debug("Updating Register entity with new values: {}", registerDTO);
         register.setName(registerDTO.getName());
         register.setCar(registerDTO.getCar());
         register.setPlate(registerDTO.getPlate());
@@ -262,9 +290,9 @@ public class RegisterService implements IRegisterService {
         map.put("status", registerDTO.isStatus());
         map.put("startDate", registerDTO.getStartDate());
         map.put("endDate", registerDTO.getEndDate());
-        map.put("total", registerDTO.getTotal());
         map.put("parkingId", registerDTO.getParkingId());
         map.put("fareId", registerDTO.getFareId());
+        map.put("total", registerDTO.getTotal());
         return map;
     }
 
@@ -277,25 +305,24 @@ public class RegisterService implements IRegisterService {
         map.put("status", register.isStatus());
         map.put("startDate", register.getStartDate());
         map.put("endDate", register.getEndDate());
-        map.put("total", register.getTotal());
         map.put("parkingId", register.getParking() != null ? register.getParking().getParkingId() : null);
         map.put("fareId", register.getFare() != null ? register.getFare().getFareId() : null);
+        map.put("total", register.getTotal());
         return map;
     }
 
     private Map<String, Object> convertPageToMap(Page<RegisterDTO> registerDTOs) {
         Map<String, Object> map = new HashMap<>();
-        map.put("registers", registerDTOs.getContent());
         map.put("totalElements", registerDTOs.getTotalElements());
         map.put("totalPages", registerDTOs.getTotalPages());
         map.put("currentPage", registerDTOs.getNumber());
+        map.put("registers", registerDTOs.getContent());
         return map;
     }
 
     private Map<String, Object> convertListToMap(List<RegisterDTO> registerDTOs) {
         Map<String, Object> map = new HashMap<>();
         map.put("registers", registerDTOs);
-        map.put("total", registerDTOs.size());
         return map;
     }
 }

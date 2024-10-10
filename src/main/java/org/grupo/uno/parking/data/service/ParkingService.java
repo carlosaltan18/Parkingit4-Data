@@ -3,7 +3,6 @@ package org.grupo.uno.parking.data.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.ParkingDTO;
 import org.grupo.uno.parking.data.model.Parking;
-import org.grupo.uno.parking.data.model.User;
 import org.grupo.uno.parking.data.repository.ParkingRepository;
 import org.grupo.uno.parking.data.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -35,11 +35,57 @@ public class ParkingService implements IParkingService {
     }
 
     @Override
-    public Page<Parking> getAllParkings(int page, int size) {
+    public Page<ParkingDTO> getAllParkings(int page, int size) {
         logger.info("Fetching all parkings - Page: {}, Size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
-        return parkingRepository.findAll(pageable);
+        Page<Parking> parkingPage = parkingRepository.findAll(pageable);
+
+        // Convertir cada entidad Parking a un ParkingDTO que incluya la información del usuario
+        return parkingPage.map(parking -> {
+            ParkingDTO parkingDTO = new ParkingDTO();
+            parkingDTO.setName(parking.getName());
+            parkingDTO.setAddress(parking.getAddress());
+            parkingDTO.setPhone(parking.getPhone());
+            parkingDTO.setSpaces(parking.getSpaces());
+            parkingDTO.setStatus(parking.getStatus());
+            return parkingDTO;
+        });
     }
+    @Override
+    public Page<ParkingDTO> searchParkingByName(String name, int page, int size) {
+        logger.info("Searching parkings by name: {} - Page: {}, Size: {}", name, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Parking> parkingPage = parkingRepository.findByNameContainingIgnoreCase(name, pageable);
+
+        // Convertir cada entidad Parking a un ParkingDTO
+        return parkingPage.map(parking -> {
+            ParkingDTO parkingDTO = new ParkingDTO();
+            parkingDTO.setName(parking.getName());
+            parkingDTO.setAddress(parking.getAddress());
+            parkingDTO.setPhone(parking.getPhone());
+            parkingDTO.setSpaces(parking.getSpaces());
+            parkingDTO.setStatus(parking.getStatus());
+            return parkingDTO;
+        });
+    }
+
+
+    @Override
+    public Page<Map<String, Object>> getParkingNamesAndStatus(int page, int size) {
+        logger.info("Fetching parking names and status - Page: {}, Size: {}", page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Parking> parkingPage = parkingRepository.findAll(pageable);
+
+        // Convertir solo el id, nombre y el estado a un Map para devolver solo esos campos
+        return parkingPage.map(parking -> {
+            Map<String, Object> parkingInfo = new HashMap<>();
+            parkingInfo.put("parkingId", parking.getParkingId());
+            parkingInfo.put("name", parking.getName());
+            parkingInfo.put("status", parking.getStatus());
+            return parkingInfo;
+        });
+    }
+
 
     @Override
     public Optional<Parking> findById(long parkingId) {
@@ -65,10 +111,7 @@ public class ParkingService implements IParkingService {
 
     @Override
     public Parking saveParking(Parking parking) {
-        // Verificar si el user está presente antes de guardar
-        if (parking.getUser() == null) {
-            throw new IllegalArgumentException("User must be provided when saving a parking.");
-        }
+        validateParking(parking);
 
         logger.info("Saving new parking with details: {}", parking);
         Parking savedParking = parkingRepository.save(parking);
@@ -94,6 +137,7 @@ public class ParkingService implements IParkingService {
                     return new EntityNotFoundException("Parking with id: " + parkingId + " does not exist");
                 });
 
+        validateParkingDTO(parkingDTO);
         updateParkingFields(parking, parkingDTO);
         parkingRepository.save(parking);
 
@@ -115,16 +159,6 @@ public class ParkingService implements IParkingService {
         parking.setPhone(parkingDTO.getPhone());
         parking.setSpaces(parkingDTO.getSpaces());
         parking.setStatus(parkingDTO.getStatus());
-
-        // Actualizar el usuario solo si se proporciona un userId en el DTO
-        if (parkingDTO.getUserId() != 0) {
-            User user = userRepository.findById(parkingDTO.getUserId())
-                    .orElseThrow(() -> {
-                        logger.error("User with ID {} does not exist", parkingDTO.getUserId());
-                        return new EntityNotFoundException("User with id: " + parkingDTO.getUserId() + " does not exist");
-                    });
-            parking.setUser(user);
-        }
     }
 
     @Override
@@ -159,7 +193,25 @@ public class ParkingService implements IParkingService {
                     Map.of("error", e.getMessage()),
                     "FAILURE"
             );
-            throw new DataAccessException("Error deleting parking with id: " + parkingId, e) {};
+            throw e;
+        }
+    }
+
+    private void validateParking(Parking parking) {
+        if (parking.getName() == null || parking.getName().isEmpty()) {
+            throw new IllegalArgumentException("Parking name cannot be null or empty.");
+        }
+        if (parking.getSpaces() <= 0) {
+            throw new IllegalArgumentException("Parking must have at least one space.");
+        }
+    }
+
+    private void validateParkingDTO(ParkingDTO parkingDTO) {
+        if (parkingDTO.getName() == null || parkingDTO.getName().isEmpty()) {
+            throw new IllegalArgumentException("Parking name cannot be null or empty.");
+        }
+        if (parkingDTO.getSpaces() <= 0) {
+            throw new IllegalArgumentException("Parking must have at least one space.");
         }
     }
 }

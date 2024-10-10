@@ -1,3 +1,4 @@
+
 package org.grupo.uno.parking.data.controller;
 
 import jakarta.annotation.security.RolesAllowed;
@@ -6,14 +7,18 @@ import org.grupo.uno.parking.data.dto.ParkingDTO;
 import org.grupo.uno.parking.data.model.Parking;
 import org.grupo.uno.parking.data.model.User;
 import org.grupo.uno.parking.data.service.ParkingService;
-import org.grupo.uno.parking.data.repository.UserRepository; // Importa el repositorio
+import org.grupo.uno.parking.data.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -21,7 +26,7 @@ import java.util.Optional;
 public class ParkingController {
 
     private final ParkingService parkingService;
-    private final UserRepository userRepository; // Agregamos el repositorio de usuarios
+    private final UserRepository userRepository;
 
     @Autowired
     public ParkingController(ParkingService parkingService, UserRepository userRepository) {
@@ -31,11 +36,32 @@ public class ParkingController {
 
     @RolesAllowed("PARKING")
     @GetMapping("")
-    public ResponseEntity<Page<Parking>> getAllParkings(@RequestParam(defaultValue = "0") int page,
-                                                        @RequestParam(defaultValue = "10") int size) {
-        Page<Parking> parkings = parkingService.getAllParkings(page, size);
+    public ResponseEntity<Page<ParkingDTO>> getAllParkings(@RequestParam(defaultValue = "0") int page,
+                                                           @RequestParam(defaultValue = "10") int size) {
+        Page<ParkingDTO> parkings = parkingService.getAllParkings(page, size);
         return ResponseEntity.ok(parkings);
     }
+
+
+    @RolesAllowed("PARKING")
+    @GetMapping("/search")
+    public ResponseEntity<Page<ParkingDTO>> searchParkingsByName(
+            @RequestParam String name,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<ParkingDTO> parkingPage = parkingService.searchParkingByName(name, page, size);
+        return ResponseEntity.ok(parkingPage);
+    }
+
+
+    @RolesAllowed("PARKING")
+    @GetMapping("/namesAndStatus")
+    public ResponseEntity<Page<Map<String, Object>>> getParkingNamesAndStatus(@RequestParam(defaultValue = "0") int page,
+                                                                              @RequestParam(defaultValue = "10") int size) {
+        Page<Map<String, Object>> parkingNamesAndStatus = parkingService.getParkingNamesAndStatus(page, size);
+        return ResponseEntity.ok(parkingNamesAndStatus);
+    }
+
 
     @RolesAllowed("PARKING")
     @GetMapping("/{id}")
@@ -67,12 +93,10 @@ public class ParkingController {
 
     @RolesAllowed("PARKING")
     @DeleteMapping("/parkingDelete/{id}")
-    public ResponseEntity<Void> deleteParking(@PathVariable("id") long id) {
+    public ResponseEntity<Void> deleteParking(@PathVariable("id") Long parkingId) {
         try {
-            parkingService.deleteParking(id);
-            return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
-        } catch (EntityNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            parkingService.deleteParking(parkingId);
+            return ResponseEntity.noContent().build();
         } catch (DataAccessException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -84,13 +108,9 @@ public class ParkingController {
         parking.setPhone(parkingDTO.getPhone());
         parking.setSpaces(parkingDTO.getSpaces());
         parking.setStatus(parkingDTO.getStatus());
-
-        if (parkingDTO.getUserId() != 0) {
-            // Buscar el usuario directamente en el repositorio
-            User user = userRepository.findById(parkingDTO.getUserId()).orElseThrow(() -> {
-                throw new EntityNotFoundException("User with id: " + parkingDTO.getUserId() + " not found");
-            });
-            parking.setUser(user);
-        }
     }
 }
+
+
+
+

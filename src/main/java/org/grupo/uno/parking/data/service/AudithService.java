@@ -84,6 +84,32 @@ public class AudithService {
         return audithRepository.findByEntityIgnoreCase(entity);
     }
 
+    public List<Audith> getAuditsByStartDate(LocalDateTime startDate) {
+        if (startDate == null) {
+            logger.error("Start date is null.");
+            throw new ValidationException("La fecha de inicio no puede estar vacía.");
+        }
+
+        LocalDateTime endDate = LocalDateTime.now(); // O puedes definir un valor diferente
+        logger.info("Fetching audits between {} and {}", startDate, endDate);
+        return audithRepository.findByStartDateBetween(startDate, endDate);
+    }
+
+    public List<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+        if (startDate == null || endDate == null) {
+            logger.error("Start date or end date is null.");
+            throw new ValidationException("Las fechas de inicio y fin no pueden estar vacías.");
+        }
+
+        if (startDate.isAfter(endDate)) {
+            logger.error("Start date {} cannot be after end date {}", startDate, endDate);
+            throw new ValidationException("La fecha de inicio no puede ser posterior a la fecha de fin.");
+        }
+
+        logger.info("Fetching audits between {} and {}", startDate, endDate);
+        return audithRepository.findByStartDateBetween(startDate, endDate);
+    }
+
     public AudithDTO convertToDTO(Audith audit) {
         if (audit == null) {
             logger.warn("Audit is null, cannot convert to DTO.");

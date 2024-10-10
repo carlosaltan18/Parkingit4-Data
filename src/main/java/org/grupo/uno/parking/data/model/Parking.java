@@ -2,6 +2,7 @@ package org.grupo.uno.parking.data.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -19,16 +20,21 @@ public class Parking {
     @Column(name = "parking_id")
     private long parkingId;
 
+    @NotBlank(message = "El nombre no puede estar vacío")
+    @Size(max = 50, message = "El nombre no puede exceder los 50 caracteres")
     private String name;
+
+    @NotBlank(message = "La dirección no puede estar vacía")
+    @Size(max = 150, message = "La dirección no puede exceder los 150 caracteres")
     private String address;
+
+    @NotBlank(message = "El teléfono no puede estar vacío")
+    @Pattern(regexp = "^[0-9]{8}$", message = "El teléfono debe contener exactamente 8 dígitos numéricos y no puede contener letras ni caracteres especiales")
     private String phone;
+
+    @Min(value = 1, message = "El número de espacios debe ser al menos 1")
     private int spaces;
 
-    // Relación ManyToOne con la tabla User
-    @ManyToOne(fetch = FetchType.LAZY, optional = false) // El 'optional = false' evita valores nulos en user_id
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id", nullable = false) // Agregado nullable = false para requerir siempre un user_id
-    @JsonIgnore // Esto evita que se serialice el usuario en la respuesta
-    private User user;
 
     private Boolean status;
 
@@ -40,7 +46,6 @@ public class Parking {
                 ", address='" + address + '\'' +
                 ", phone='" + phone + '\'' +
                 ", spaces=" + spaces +
-                ", userId=" + (user != null ? user.getUserId() : "null") + // Asegúrate de verificar si user es nulo
                 ", status=" + status +
                 '}';
     }
