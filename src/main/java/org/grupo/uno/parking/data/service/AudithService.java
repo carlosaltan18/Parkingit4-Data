@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class AudithService {
+public class AudithService implements IAudithService{
 
     private static final Logger logger = LoggerFactory.getLogger(AudithService.class);
     private static final int MAX_LENGTH = 255; // Definir longitud máxima
@@ -33,7 +33,7 @@ public class AudithService {
     public AudithService(AudithRepository audithRepository) {
         this.audithRepository = audithRepository;
     }
-
+    @Override
     public Audith createAudit(String entity, String description, String operation,
                               Map<String, Object> request, Map<String, Object> response, String result) {
         validateAuditParameters(entity, description, operation);
@@ -58,13 +58,13 @@ public class AudithService {
         logger.info("Audit created successfully with ID: {}", savedAudit.getAuditId());
         return savedAudit;
     }
-
+    @Override
     public Page<Audith> getAllAudits(int page, int size) {
         logger.info("Fetching all audits - Page: {}, Size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         return audithRepository.findAll(pageable);
     }
-
+    @Override
     public Audith getAuditById(long id) {
         logger.info("Fetching audit by ID: {}", id);
         return audithRepository.findById(id)
@@ -73,29 +73,31 @@ public class AudithService {
                     return new IllegalArgumentException("Auditoría no encontrada con ID: " + id);
                 });
     }
-
-    public List<Audith> getAuditsByEntity(String entity) {
+    @Override
+    public Page<Audith> getAuditsByEntity(String entity, int page, int size) {
         if (!StringUtils.hasText(entity)) {
             logger.error("Entity parameter is empty.");
             throw new ValidationException("La entidad no puede estar vacía.");
         }
 
-        logger.info("Fetching audits for entity: {}", entity);
-        return audithRepository.findByEntityIgnoreCase(entity);
+        logger.info("Fetching audits for entity: {} - Page: {}, Size: {}", entity, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        return audithRepository.findByEntityIgnoreCase(entity, pageable);
     }
-
-    public List<Audith> getAuditsByStartDate(LocalDateTime startDate) {
+    @Override
+    public Page<Audith> getAuditsByStartDate(LocalDateTime startDate, int page, int size) {
         if (startDate == null) {
             logger.error("Start date is null.");
             throw new ValidationException("La fecha de inicio no puede estar vacía.");
         }
 
         LocalDateTime endDate = LocalDateTime.now(); // O puedes definir un valor diferente
-        logger.info("Fetching audits between {} and {}", startDate, endDate);
-        return audithRepository.findByStartDateBetween(startDate, endDate);
+        logger.info("Fetching audits between {} and {} - Page: {}, Size: {}", startDate, endDate, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        return audithRepository.findByStartDateBetween(startDate, endDate, pageable);
     }
-
-    public List<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate) {
+@Override
+public Page<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
         if (startDate == null || endDate == null) {
             logger.error("Start date or end date is null.");
             throw new ValidationException("Las fechas de inicio y fin no pueden estar vacías.");
@@ -106,8 +108,17 @@ public class AudithService {
             throw new ValidationException("La fecha de inicio no puede ser posterior a la fecha de fin.");
         }
 
-        logger.info("Fetching audits between {} and {}", startDate, endDate);
-        return audithRepository.findByStartDateBetween(startDate, endDate);
+        logger.info("Fetching audits between {} and {} - Page: {}, Size: {}", startDate, endDate, page, size);
+        Pageable pageable = PageRequest.of(page, size);
+        return audithRepository.findByStartDateBetween(startDate, endDate, pageable);
+    }
+
+    public List<AudithDTO> getAllAuditDTOs(int page, int size) {
+        logger.info("Fetching all audit DTOs - Page: {}, Size: {}", page, size);
+        Page<Audith> auditPage = getAllAudits(page, size);
+        return auditPage.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
     }
 
     public AudithDTO convertToDTO(Audith audit) {
@@ -146,14 +157,6 @@ public class AudithService {
             logger.error("Error al convertir a OffsetDateTime: {}", e.getMessage());
             throw e;
         }
-    }
-
-    public List<AudithDTO> getAllAuditDTOs(int page, int size) {
-        logger.info("Fetching all audit DTOs - Page: {}, Size: {}", page, size);
-        Page<Audith> auditPage = getAllAudits(page, size);
-        return auditPage.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
     }
 
     private void validateAuditParameters(String entity, String description, String operation) {

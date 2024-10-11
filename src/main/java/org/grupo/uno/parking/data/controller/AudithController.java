@@ -19,7 +19,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeParseException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
@@ -61,38 +60,46 @@ public class AudithController {
 
     @RolesAllowed("AUDITH")
     @GetMapping("/entity/{entity}")
-    public ResponseEntity<List<AudithDTO>> getAuditsByEntity(@PathVariable("entity") String entity) {
-        List<Audith> audits = audithService.getAuditsByEntity(entity);
-        List<AudithDTO> auditDTOs = audits.stream()
-                .map(this::convertToDto)
-                .toList();
-        return ResponseEntity.ok(auditDTOs);
+    public ResponseEntity<Map<String, Object>> getAuditsByEntity(@PathVariable("entity") String entity, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            Page<Audith> auditsPage = audithService.getAuditsByEntity(entity, page, size);
+            response.put(MESSAGE, "Auditorías por entidad recuperadas exitosamente");
+            response.put("audiths", auditsPage.getContent());
+            response.put("totalPages", auditsPage.getTotalPages());
+            response.put("currentPage", auditsPage.getNumber());
+            response.put("totalElements", auditsPage.getTotalElements());
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("err", "Error al recuperar auditorías: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     @RolesAllowed("AUDITH")
     @PostMapping("/date-range")
-    public ResponseEntity<List<AudithDTO>> getAuditsByDateRange(@RequestBody DateRangeRequest dateRangeRequest) {
+    public ResponseEntity<Map<String, Object>> getAuditsByDateRange(@RequestBody DateRangeRequest dateRangeRequest, @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size) {
+        Map<String, Object> response = new HashMap<>();
         try {
-            // Asegúrate de que el formato de fecha sea el esperado
             LocalDateTime startDate = LocalDateTime.parse(dateRangeRequest.getStartDate());
             LocalDateTime endDate = LocalDateTime.parse(dateRangeRequest.getEndDate());
-            List<Audith> audits = audithService.getAuditsByDateRange(startDate, endDate);
-            List<AudithDTO> auditDTOs = audits.stream()
-                    .map(this::convertToDto)
-                    .toList();
-            return ResponseEntity.ok(auditDTOs);
+            Page<Audith> auditsPage = audithService.getAuditsByDateRange(startDate, endDate, page, size);
+            response.put(MESSAGE, "Auditorías por rango de fechas recuperadas exitosamente");
+            response.put("audiths", auditsPage.getContent());
+            response.put("totalPages", auditsPage.getTotalPages());
+            response.put("currentPage", auditsPage.getNumber());
+            response.put("totalElements", auditsPage.getTotalElements());
+            return ResponseEntity.ok(response);
         } catch (DateTimeParseException e) {
             logger.error("Error al analizar las fechas: {}", e.getMessage());
-            return ResponseEntity.badRequest().body(null);
+            response.put("err", "Error al analizar las fechas: " + e.getMessage());
+            return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
             logger.error("Error recuperando auditorías por rango de fechas: {}", e.getMessage());
-            return ResponseEntity.status(500).body(null);
+            response.put("err", "Error recuperando auditorías: " + e.getMessage());
+            return ResponseEntity.status(500).body(response);
         }
     }
-
-
-
-
 
     @RolesAllowed("AUDITH")
     @PostMapping("/manual")

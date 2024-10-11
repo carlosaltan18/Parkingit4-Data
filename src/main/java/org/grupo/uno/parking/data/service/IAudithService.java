@@ -2,17 +2,25 @@ package org.grupo.uno.parking.data.service;
 
 import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
+import org.springframework.data.domain.Page;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 public interface IAudithService {
-    void recordAudit(String entity, String description, String operation, Map<String, Object> request, Map<String, Object> response, String result);
 
-    List<AudithDTO> getAllAudits();
+    Audith createAudit(String entity, String description, String operation,
+                       Map<String, Object> request, Map<String, Object> response, String result);
 
-    Optional<AudithDTO> getAuditById(long id);
+    Page<Audith> getAllAudits(int page, int size);
 
-    AudithDTO convertToDTO(Audith audit);
+    Audith getAuditById(long id);
+
+    Page<Audith> getAuditsByEntity(String entity, int page, int size);
+
+    Page<Audith> getAuditsByStartDate(LocalDateTime startDate, int page, int size);
+
+    Page<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size);
 }
