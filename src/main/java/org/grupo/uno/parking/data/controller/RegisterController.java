@@ -4,10 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.security.RolesAllowed;
-import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
-import org.grupo.uno.parking.data.exception.AllDataRequiredException;
-import org.grupo.uno.parking.data.exceptions.FareExist;
 import org.grupo.uno.parking.data.exceptions.NoRegistersFoundException;
 import org.grupo.uno.parking.data.service.IRegisterService;
 import org.grupo.uno.parking.data.service.PdfService;
@@ -22,6 +19,8 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -140,10 +139,12 @@ public class RegisterController {
     @RolesAllowed("REGISTER")
     @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
     public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId,
-                                                                     @PathVariable LocalDateTime startDate,
-                                                                     @PathVariable LocalDateTime endDate) {
+                                                                     @PathVariable LocalDate startDate,
+                                                                     @PathVariable LocalDate endDate) {
         try {
-            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDate, endDate);
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDateTime, endDateTime);
             return new ResponseEntity<>(registers, HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error generando reporte por ID de estacionamiento: ", e);
@@ -154,11 +155,14 @@ public class RegisterController {
     @RolesAllowed("REGISTER")
     @PostMapping("/generatePDF/{parkingId}/{startDate}/{endDate}")
     public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId,
-                                                             @PathVariable LocalDateTime startDate,
-                                                             @PathVariable LocalDateTime endDate) {
+                                                             @PathVariable LocalDate startDate,
+                                                             @PathVariable LocalDate endDate) {
         logger.info("Generating PDF for parkingId: {}", parkingId);
         try {
-            List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId, startDate, endDate);
+            LocalDateTime startDateTime = startDate.atStartOfDay();
+            LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
+
+            List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId, startDateTime, endDateTime);
             if (registers.isEmpty()) {
                 throw new NoRegistersFoundException("No registers found for parkingId: " + parkingId);
             }

@@ -23,7 +23,7 @@ import java.util.List;
 @Service
 public class PdfService {
 
-    private static final int NUMBER_OF_COLUMNS = 6;
+    private static final int NUMBER_OF_COLUMNS = 5;
 
     public byte[] generatePdfFromJson(String json) throws RuntimeException {
         ObjectMapper objectMapper = new ObjectMapper();
@@ -52,7 +52,7 @@ public class PdfService {
 
             Table table = new Table(NUMBER_OF_COLUMNS);
             table.setWidth(UnitValue.createPercentValue(100));
-            for (String header : new String[]{"ID", "Car", "Plate", "Total", "Start Date", "End Date"}) {
+            for (String header : new String[]{"ID", "Plate", "Total", "Start Date", "End Date"}) {
                 Cell headerCell = new Cell().add(new Paragraph(header))
                         .setBold()
                         .setTextAlignment(TextAlignment.CENTER)
@@ -65,7 +65,6 @@ public class PdfService {
 
             for (RegisterDTO register : registers) {
                 table.addCell(new Cell().add(new Paragraph(String.valueOf(register.getRegisterId()))));
-                table.addCell(new Cell().add(new Paragraph(register.getCar())));
                 table.addCell(new Cell().add(new Paragraph(register.getPlate())));
                 if (register.getTotal() != null){
                     table.addCell(new Cell().add(new Paragraph(register.getTotal().toString())));
