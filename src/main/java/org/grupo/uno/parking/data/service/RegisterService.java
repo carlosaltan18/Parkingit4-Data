@@ -1,6 +1,9 @@
 package org.grupo.uno.parking.data.service;
 
+import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
+import org.grupo.uno.parking.data.model.Fare;
+import org.grupo.uno.parking.data.model.Parking;
 import org.grupo.uno.parking.data.model.Register;
 import org.grupo.uno.parking.data.repository.FareRepository;
 import org.grupo.uno.parking.data.repository.ParkingRepository;
@@ -16,6 +19,7 @@ import org.slf4j.LoggerFactory;
 
 import jakarta.validation.Valid;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -38,6 +42,71 @@ public class RegisterService implements IRegisterService {
 
     @Autowired
     private AudithService audithService;
+
+
+    @Override
+    public RegisterDTO RegistroDeEntrada(String plate, long parkingId) {
+        // Aquí obtén la entidad de Parking usando parkingId
+        Parking parking = parkingRepository.findById(parkingId)
+                .orElseThrow(() -> new EntityNotFoundException("Parking not found"));
+
+        Register register = new Register();
+        register.setPlate(plate);
+        register.setParking(parking);
+        register.setStartDate(LocalDateTime.now());
+        register.setStatus(true); // o el valor que necesites
+
+        // Guarda el registro
+        register = registerRepository.save(register);
+
+        // Convierte a DTO
+        return convertToDTO(register);
+    }
+
+
+    @Override
+    public RegisterDTO RegistroDeSalida(String plate) {
+        LocalDateTime endDate = LocalDateTime.now(); // Fecha actual como endDate
+
+        // Buscar el registro por la placa (plate)
+        Register register = registerRepository.findByPlate(plate)
+                .orElseThrow(() -> new IllegalArgumentException("Registro con placa " + plate + " no encontrado"));
+
+        register.setEndDate(endDate); // Establecer fecha de salida
+
+        // Calcular la diferencia de tiempo entre startDate y endDate
+        long minutesParked = java.time.Duration.between(register.getStartDate(), endDate).toMinutes();
+
+        // Buscar la tarifa adecuada
+        Optional<Fare> optionalFare = fareRepository.findFareByDuration(minutesParked);
+        Fare fare = optionalFare.orElseGet(() -> fareRepository.findById(1L)
+                .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada")));
+
+        register.setFare(fare);
+
+        // Calcular el total a pagar
+        BigDecimal total = BigDecimal.valueOf((minutesParked / 60.0) * fare.getPrice());
+        register.setTotal(total);
+        register.setStatus(false); // Marcar como cerrado
+
+        // Actualizar el registro en la base de datos
+        Register updatedRegister = registerRepository.save(register);
+
+        // Auditoría
+        audithService.createAudit(
+                "Register",
+                "Registro de salida actualizado",
+                "UPDATE",
+                convertEntityToMap(updatedRegister),
+                null,
+                "SUCCESS"
+        );
+
+        return convertToDTO(updatedRegister);
+    }
+
+
+
 
     @Override
     public Page<RegisterDTO> getAllRegisters(int page, int size) {
@@ -250,24 +319,33 @@ public class RegisterService implements IRegisterService {
 
     private RegisterDTO convertToDTO(Register register) {
         if (register == null) {
-            logger.error("Register entity is null.");
-            throw new IllegalArgumentException("Register cannot be null");
+            logger.error("El registro no puede ser nulo.");
+            throw new IllegalArgumentException("El registro no puede ser nulo.");
         }
 
-        logger.debug("Converting Register entity to RegisterDTO: ID: {}", register.getRegisterId());
-        return new RegisterDTO(
-                register.getRegisterId(),
-                register.getName(),
-                register.getCar(),
-                register.getPlate(),
-                register.isStatus(),
-                register.getStartDate(),
-                register.getEndDate(),
-                register.getParking() != null ? register.getParking().getParkingId() : null,
-                register.getFare() != null ? register.getFare().getFareId() : null,
-                register.getTotal()
-        );
+        RegisterDTO dto = new RegisterDTO();
+
+        // Usa Optional o verifica nulos
+        dto.setRegisterId(register.getRegisterId());
+        dto.setPlate(register.getPlate());
+        dto.setStatus(register.isStatus());
+        dto.setStartDate(register.getStartDate());
+        dto.setEndDate(register.getEndDate());
+
+        // Maneja posibles nulls en parkingId
+        dto.setParkingId(register.getParking() != null ? register.getParking().getParkingId() : 0); // 0 o un valor que definas como predeterminado
+
+        // Maneja posibles nulls en fareId
+        dto.setFareId(register.getFare() != null ? register.getFare().getFareId() : 0); // 0 o un valor que definas como predeterminado
+
+        dto.setTotal(register.getTotal());
+
+        return dto;
     }
+
+
+
+
 
     private void updateRegisterFields(Register register, RegisterDTO registerDTO) {
         logger.debug("Updating Register entity with new values: {}", registerDTO);

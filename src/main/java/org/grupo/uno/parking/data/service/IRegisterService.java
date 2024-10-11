@@ -9,6 +9,10 @@ import java.util.Optional;
 
 public interface IRegisterService {
 
+    RegisterDTO RegistroDeEntrada(String plate, long parkingId);
+
+    RegisterDTO RegistroDeSalida(String plate);
+
     // Cambiado a Page<RegisterDTO> para trabajar con DTOs
     Page<RegisterDTO> getAllRegisters(int page, int size);
 
@@ -27,4 +31,5 @@ public interface IRegisterService {
     List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
 
     List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
+
 }

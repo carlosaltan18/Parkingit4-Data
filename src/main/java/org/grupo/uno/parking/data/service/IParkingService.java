@@ -8,9 +8,11 @@ import java.util.Map;
 import java.util.Optional;
 
 public interface IParkingService {
+    void patchParking(Long parkingId, Map<String, Object> updates);
+
     Page<ParkingDTO> getAllParkings(int page, int size);
 
-    Page<ParkingDTO> searchParkingByName(String name, int page, int size);
+    Page<Map<String, Object>> searchParkingByName(String name, int page, int size);
 
     Page<Map<String, Object>> getParkingNamesAndStatus(int page, int size);
 

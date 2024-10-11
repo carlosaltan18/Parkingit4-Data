@@ -4,7 +4,10 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.annotation.security.RolesAllowed;
+import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
+import org.grupo.uno.parking.data.exception.AllDataRequiredException;
+import org.grupo.uno.parking.data.exceptions.FareExist;
 import org.grupo.uno.parking.data.exceptions.NoRegistersFoundException;
 import org.grupo.uno.parking.data.service.IRegisterService;
 import org.grupo.uno.parking.data.service.PdfService;
@@ -13,11 +16,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,8 +32,44 @@ public class RegisterController {
 
     @Autowired
     private IRegisterService registerService;
+
     @Autowired
     private PdfService pdfService;
+
+    @RolesAllowed("REGISTER")
+    @PostMapping("/entrada")
+    public ResponseEntity<RegisterDTO> registroDeEntrada(@RequestBody RegisterDTO registerDTO) {
+        if (registerDTO == null || registerDTO.getPlate() == null || registerDTO.getParkingId() == 0) {
+            logger.error("El cuerpo de la solicitud es inválido: {}", registerDTO);
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        try {
+            // Llama al servicio para registrar la entrada, usando plate y parkingId de registerDTO
+            RegisterDTO newRegister = registerService.RegistroDeEntrada(registerDTO.getPlate(), registerDTO.getParkingId());
+            return new ResponseEntity<>(newRegister, HttpStatus.CREATED);
+        } catch (Exception e) {
+            logger.error("Error en registro de entrada: ", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+
+    // Endpoint para registrar la salida de un vehículo
+    @RolesAllowed("REGISTER")
+    @PutMapping("/salida/{plate}")
+    public ResponseEntity<RegisterDTO> registroDeSalida(@PathVariable String plate) {
+        try {
+            RegisterDTO updatedRegister = registerService.RegistroDeSalida(plate);
+            return new ResponseEntity<>(updatedRegister, HttpStatus.OK);
+        } catch (IllegalArgumentException e) {
+            logger.error("Registro no encontrado: ", e);
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        } catch (Exception e) {
+            logger.error("Error en registro de salida: ", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
 
     @RolesAllowed("REGISTER")
     @GetMapping("")
@@ -41,6 +80,7 @@ public class RegisterController {
             Page<RegisterDTO> registers = registerService.getAllRegisters(page, size);
             return new ResponseEntity<>(registers, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error obteniendo todos los registros: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -60,6 +100,7 @@ public class RegisterController {
             RegisterDTO savedRegister = registerService.saveRegister(registerDTO);
             return new ResponseEntity<>(savedRegister, HttpStatus.CREATED);
         } catch (DataAccessException e) {
+            logger.error("Error guardando el registro: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -72,8 +113,10 @@ public class RegisterController {
             RegisterDTO updatedRegister = registerService.updateRegister(registerDTO, id);
             return new ResponseEntity<>(updatedRegister, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
+            logger.error("Registro no encontrado para actualizar: ", e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (DataAccessException e) {
+            logger.error("Error actualizando el registro: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -85,8 +128,10 @@ public class RegisterController {
             registerService.deleteRegister(id);
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (IllegalArgumentException e) {
+            logger.error("Registro no encontrado para eliminar: ", e);
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         } catch (DataAccessException e) {
+            logger.error("Error eliminando el registro: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -94,24 +139,30 @@ public class RegisterController {
     // Nuevo endpoint para obtener registros por ID de estacionamiento
     @RolesAllowed("REGISTER")
     @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
-    public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate) {
+    public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId,
+                                                                     @PathVariable LocalDateTime startDate,
+                                                                     @PathVariable LocalDateTime endDate) {
         try {
             List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDate, endDate);
             return new ResponseEntity<>(registers, HttpStatus.OK);
         } catch (Exception e) {
+            logger.error("Error generando reporte por ID de estacionamiento: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @RolesAllowed("REGISTER")
     @PostMapping("/generatePDF/{parkingId}/{startDate}/{endDate}")
-    public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId, @PathVariable LocalDateTime startDate, @PathVariable LocalDateTime endDate) {
+    public ResponseEntity<byte[]> getRegistersByParkingIdPDF(@PathVariable Long parkingId,
+                                                             @PathVariable LocalDateTime startDate,
+                                                             @PathVariable LocalDateTime endDate) {
         logger.info("Generating PDF for parkingId: {}", parkingId);
         try {
             List<RegisterDTO> registers = registerService.generateReportByParkingIdPDF(parkingId, startDate, endDate);
-            if (registers == null) {
+            if (registers.isEmpty()) {
                 throw new NoRegistersFoundException("No registers found for parkingId: " + parkingId);
             }
+
             ObjectMapper objectMapper = new ObjectMapper();
             objectMapper.registerModule(new JavaTimeModule());
             String json = objectMapper.writeValueAsString(registers);

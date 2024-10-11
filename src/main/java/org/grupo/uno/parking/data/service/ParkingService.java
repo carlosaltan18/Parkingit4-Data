@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -35,6 +36,42 @@ public class ParkingService implements IParkingService {
     }
 
     @Override
+    public void patchParking(Long parkingId, Map<String, Object> updates) {
+        logger.info("Patching parking with ID: {} with updates: {}", parkingId, updates);
+
+        Parking parking = parkingRepository.findById(parkingId)
+                .orElseThrow(() -> {
+                    logger.error("Parking with ID {} does not exist", parkingId);
+                    return new EntityNotFoundException("Parking with id: " + parkingId + " does not exist");
+                });
+
+        // Aplicar actualizaciones solo a los campos permitidos
+        updates.forEach((key, value) -> {
+            try {
+                Field field = Parking.class.getDeclaredField(key);
+                field.setAccessible(true);
+                field.set(parking, value);
+            } catch (NoSuchFieldException | IllegalAccessException e) {
+                logger.error("Error updating field {} for parking ID {}: {}", key, parkingId, e.getMessage());
+                throw new IllegalArgumentException("Error updating field: " + key);
+            }
+        });
+
+        parkingRepository.save(parking);
+
+        audithService.createAudit(
+                "Parking",
+                "Patch parking",
+                "PATCH",
+                Map.of("parkingId", parkingId, "updates", updates),
+                Map.of("patchedParking", parking),
+                "SUCCESS"
+        );
+
+        logger.info("Parking patched successfully with ID: {}", parkingId);
+    }
+
+    @Override
     public Page<ParkingDTO> getAllParkings(int page, int size) {
         logger.info("Fetching all parkings - Page: {}, Size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
@@ -52,22 +89,26 @@ public class ParkingService implements IParkingService {
         });
     }
     @Override
-    public Page<ParkingDTO> searchParkingByName(String name, int page, int size) {
-        logger.info("Searching parkings by name: {} - Page: {}, Size: {}", name, page, size);
+    public Page<Map<String, Object>> searchParkingByName(String name, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Parking> parkingPage = parkingRepository.findByNameContainingIgnoreCase(name, pageable);
 
-        // Convertir cada entidad Parking a un ParkingDTO
+        // Loguear la consulta SQL y la cantidad total de resultados encontrados
+        logger.info("Querying for parkings with name containing '{}', found: {}", name, parkingPage.getTotalElements());
+
+        if (parkingPage.isEmpty()) {
+            logger.warn("No parkings found with name containing: {}", name);
+        }
+
         return parkingPage.map(parking -> {
-            ParkingDTO parkingDTO = new ParkingDTO();
-            parkingDTO.setName(parking.getName());
-            parkingDTO.setAddress(parking.getAddress());
-            parkingDTO.setPhone(parking.getPhone());
-            parkingDTO.setSpaces(parking.getSpaces());
-            parkingDTO.setStatus(parking.getStatus());
-            return parkingDTO;
+            Map<String, Object> parkingInfo = new HashMap<>();
+            parkingInfo.put("id", parking.getParkingId());
+            parkingInfo.put("name", parking.getName());
+            parkingInfo.put("status", parking.getStatus());
+            return parkingInfo;
         });
     }
+
 
 
     @Override

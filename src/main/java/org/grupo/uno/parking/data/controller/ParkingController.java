@@ -5,7 +5,6 @@ import jakarta.annotation.security.RolesAllowed;
 import jakarta.persistence.EntityNotFoundException;
 import org.grupo.uno.parking.data.dto.ParkingDTO;
 import org.grupo.uno.parking.data.model.Parking;
-import org.grupo.uno.parking.data.model.User;
 import org.grupo.uno.parking.data.service.ParkingService;
 import org.grupo.uno.parking.data.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,11 +12,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -42,16 +38,32 @@ public class ParkingController {
         return ResponseEntity.ok(parkings);
     }
 
+    @RolesAllowed("PARKING")
+    @PatchMapping("/parkingPatch/{id}")
+    public ResponseEntity<Void> patchParking(@PathVariable("id") Long id, @RequestBody Map<String, Object> updates) {
+        try {
+            parkingService.patchParking(id, updates);
+            return ResponseEntity.ok().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+        }
+    }
+
 
     @RolesAllowed("PARKING")
     @GetMapping("/search")
-    public ResponseEntity<Page<ParkingDTO>> searchParkingsByName(
+    public ResponseEntity<Page<Map<String, Object>>> searchParkingsByName(
             @RequestParam String name,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Page<ParkingDTO> parkingPage = parkingService.searchParkingByName(name, page, size);
+        Page<Map<String, Object>> parkingPage = parkingService.searchParkingByName(name, page, size);
         return ResponseEntity.ok(parkingPage);
     }
+
+
+
 
 
     @RolesAllowed("PARKING")

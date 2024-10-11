@@ -24,12 +24,12 @@ public class Register {
     @Column(name = "register_id")
     private long registerId;
 
-    @NotBlank(message = "El nombre no puede estar vacío")
+
     @Size(max = 50, message = "El nombre no puede exceder los 50 caracteres")
     @Column(name = "name", nullable = false)
     private String name;
 
-    @NotBlank(message = "El campo 'car' no puede estar vacío")
+
     @Size(max = 50, message = "El campo 'car' no puede exceder los 50 caracteres")
     @Column(name = "car", nullable = false)
     private String car;
@@ -42,7 +42,6 @@ public class Register {
     @Column(name = "status")
     private boolean status;
 
-    @NotNull(message = "La fecha de inicio no puede estar vacía")
     @Column(name = "start_date", nullable = false)
     private LocalDateTime startDate;
 
@@ -60,7 +59,6 @@ public class Register {
     @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Fare fare;
 
-    @NotNull(message = "El total no puede ser nulo")
     @DecimalMin(value = "0.00", inclusive = false, message = "El total debe ser mayor que cero")
     @Column(name = "total", precision = 10, scale = 2)
     private BigDecimal total;

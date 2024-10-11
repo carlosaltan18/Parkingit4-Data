@@ -13,4 +13,6 @@ import java.util.List;
 @Repository
 public interface ParkingRepository extends JpaRepository<Parking, Long> {
     Page<Parking> findByNameContainingIgnoreCase(String name, Pageable pageable);
+
+
 }
