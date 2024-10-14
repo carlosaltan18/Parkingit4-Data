@@ -42,7 +42,6 @@ public class RegisterController {
             logger.error("El cuerpo de la solicitud es inválido: {}", registerDTO);
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
-
         try {
             // Llama al servicio para registrar la entrada, usando plate y parkingId de registerDTO
             RegisterDTO newRegister = registerService.RegistroDeEntrada(registerDTO.getPlate(), registerDTO.getParkingId());
@@ -52,8 +51,6 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
-
     // Endpoint para registrar la salida de un vehículo
     @RolesAllowed("REGISTER")
     @PutMapping("/salida/{plate}")
@@ -69,7 +66,6 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     @RolesAllowed("REGISTER")
     @GetMapping("")
     public ResponseEntity<Page<RegisterDTO>> getAllRegisters(
@@ -134,7 +130,6 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-
     // Nuevo endpoint para obtener registros por ID de estacionamiento
     @RolesAllowed("REGISTER")
     @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
