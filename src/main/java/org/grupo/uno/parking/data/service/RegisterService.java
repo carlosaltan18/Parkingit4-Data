@@ -21,6 +21,7 @@ import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 
 @Service
@@ -74,24 +75,36 @@ public class RegisterService implements IRegisterService {
         // Calcular la diferencia de tiempo entre startDate y endDate
         long minutesParked = java.time.Duration.between(register.getStartDate(), endDate).toMinutes();
 
-        // Buscar la tarifa adecuada
-        List<Fare> fares = fareRepository.findFareByDuration(minutesParked);
+        // Obtener todas las tarifas
+        List<Fare> fares = fareRepository.findAll(); // Asegúrate de que este método obtiene todas las tarifas disponibles
 
-        Fare fare;
+        Fare selectedFare = null;
+        BigDecimal total = BigDecimal.ZERO;
 
-        if (fares.size() == 1) {
-            fare = fares.get(0);
-        } else if (fares.isEmpty()) {
-            fare = fareRepository.findById(1L)
-                    .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada"));
-        } else {
-            fare = seleccionarTarifaAdecuada(fares);
+        // Iterar sobre las tarifas para determinar cuál aplicar
+        for (Fare fare : fares) {
+            // Verificar si la tarifa se aplica a la hora de entrada
+            LocalTime startTime = LocalTime.parse(fare.getStartTime());
+            LocalTime endTime = LocalTime.parse(fare.getEndTime());
+            LocalTime entryTime = register.getStartDate().toLocalTime();
+
+            // Comprobar si la hora de entrada está dentro del rango de la tarifa
+            if (!entryTime.isBefore(startTime) && !entryTime.isAfter(endTime)) {
+                // Calcular el total basado en la duración y el precio de la tarifa
+                total = BigDecimal.valueOf((minutesParked / 60.0) * fare.getPrice());
+                selectedFare = fare; // Asignar la tarifa seleccionada
+                break; // Salir del bucle una vez que se encuentra una tarifa adecuada
+            }
         }
 
-        register.setFare(fare);
+        // Si no se encontró una tarifa adecuada, utilizar la tarifa por defecto
+        if (selectedFare == null) {
+            selectedFare = fareRepository.findById(1L) // Cambia 1L al ID de tu tarifa por defecto si es necesario
+                    .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada"));
+            total = BigDecimal.valueOf((minutesParked / 60.0) * selectedFare.getPrice());
+        }
 
-        // Calcular el total a pagar
-        BigDecimal total = BigDecimal.valueOf((minutesParked / 60.0) * fare.getPrice());
+        register.setFare(selectedFare);
         register.setTotal(total);
         register.setStatus(false); // Marcar como cerrado
 
@@ -110,6 +123,8 @@ public class RegisterService implements IRegisterService {
 
         return convertToDTO(updatedRegister);
     }
+
+
     private Fare seleccionarTarifaAdecuada(List<Fare> fares) {
         return fares.stream()
                 .min(Comparator.comparing(Fare::getPrice))
@@ -228,17 +243,19 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public Page<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
+    public List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         logger.info("Generating report for parking ID: {}", parkingId);
 
-        Page<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate, pageable);
+        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
         }
 
         // Convertir los registros a DTO
-        Page<RegisterDTO> registerDTOsPage = registers.map(this::convertToDTO);
+        List<RegisterDTO> registerDTOs = registers.stream()
+                .map(this::convertToDTO)
+                .toList();
 
         // Auditar la generación del reporte
         audithService.createAudit(
@@ -246,19 +263,19 @@ public class RegisterService implements IRegisterService {
                 "Generated report for parking ID: " + parkingId,
                 "REPORT",
                 null,
-                convertListToMap(registerDTOsPage.getContent()),
+                convertListToMap(registerDTOs),
                 "SUCCESS"
         );
 
         logger.info("Report generated successfully for parking ID: {}", parkingId);
-        return registerDTOsPage;
+        return registerDTOs;
     }
 
     @Override
     public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         logger.info("Generating PDF report for parking ID: {}", parkingId);
 
-        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRangePDF(parkingId, startDate, endDate);
+        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
@@ -285,12 +302,6 @@ public class RegisterService implements IRegisterService {
 
     private void validateRegister(RegisterDTO registerDTO) {
         // Validaciones
-        if (registerDTO.getName() == null || registerDTO.getName().isEmpty()) {
-            throw new IllegalArgumentException("El nombre no puede estar vacío.");
-        }
-        if (registerDTO.getCar() == null || registerDTO.getCar().isEmpty()) {
-            throw new IllegalArgumentException("El campo 'car' no puede estar vacío.");
-        }
         if (registerDTO.getPlate() == null || registerDTO.getPlate().isEmpty()) {
             throw new IllegalArgumentException("El campo 'plate' no puede estar vacío.");
         }
@@ -312,8 +323,6 @@ public class RegisterService implements IRegisterService {
     private Register convertToEntity(RegisterDTO registerDTO) {
         logger.debug("Converting RegisterDTO to Register entity: {}", registerDTO);
         Register register = new Register();
-        register.setName(registerDTO.getName());
-        register.setCar(registerDTO.getCar());
         register.setPlate(registerDTO.getPlate());
         register.setStatus(registerDTO.isStatus());
         register.setStartDate(registerDTO.getStartDate());
@@ -358,8 +367,6 @@ public class RegisterService implements IRegisterService {
 
     private void updateRegisterFields(Register register, RegisterDTO registerDTO) {
         logger.debug("Updating Register entity with new values: {}", registerDTO);
-        register.setName(registerDTO.getName());
-        register.setCar(registerDTO.getCar());
         register.setPlate(registerDTO.getPlate());
         register.setStatus(registerDTO.isStatus());
         register.setStartDate(registerDTO.getStartDate());
@@ -373,8 +380,6 @@ public class RegisterService implements IRegisterService {
     private Map<String, Object> convertDTOToMap(RegisterDTO registerDTO) {
         Map<String, Object> map = new HashMap<>();
         map.put("registerId", registerDTO.getRegisterId());
-        map.put("name", registerDTO.getName());
-        map.put("car", registerDTO.getCar());
         map.put("plate", registerDTO.getPlate());
         map.put("status", registerDTO.isStatus());
         map.put("startDate", registerDTO.getStartDate());
@@ -388,8 +393,6 @@ public class RegisterService implements IRegisterService {
     private Map<String, Object> convertEntityToMap(Register register) {
         Map<String, Object> map = new HashMap<>();
         map.put("registerId", register.getRegisterId());
-        map.put("name", register.getName());
-        map.put("car", register.getCar());
         map.put("plate", register.getPlate());
         map.put("status", register.isStatus());
         map.put("startDate", register.getStartDate());

@@ -17,12 +17,9 @@ import java.time.OffsetDateTime;
 public class RegisterDTO implements Serializable {
 
     private long registerId;
-    private String name;
-    private String car;
     private String plate;
     private boolean status;
 
-    // Cambiado de LocalDateTime a OffsetDateTime, si así lo tienes configurado en el modelo
     private LocalDateTime startDate;
     private LocalDateTime endDate;
 

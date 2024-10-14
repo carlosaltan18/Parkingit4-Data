@@ -96,8 +96,8 @@ public class AudithService implements IAudithService{
         Pageable pageable = PageRequest.of(page, size);
         return audithRepository.findByStartDateBetween(startDate, endDate, pageable);
     }
-@Override
-public Page<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
+    @Override
+    public Page<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
         if (startDate == null || endDate == null) {
             logger.error("Start date or end date is null.");
             throw new ValidationException("Las fechas de inicio y fin no pueden estar vacías.");

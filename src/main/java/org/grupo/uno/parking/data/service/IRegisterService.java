@@ -2,7 +2,6 @@ package org.grupo.uno.parking.data.service;
 
 import org.grupo.uno.parking.data.dto.RegisterDTO;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,7 +28,7 @@ public interface IRegisterService {
     // No requiere cambios, pues trabaja con el ID
     void deleteRegister(Long registerId);
 
-    Page<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable);
+    List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
 
     List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate);
 

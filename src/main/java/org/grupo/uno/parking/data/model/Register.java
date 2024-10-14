@@ -25,15 +25,6 @@ public class Register {
     private long registerId;
 
 
-    @Size(max = 50, message = "El nombre no puede exceder los 50 caracteres")
-    @Column(name = "name", nullable = false)
-    private String name;
-
-
-    @Size(max = 50, message = "El campo 'car' no puede exceder los 50 caracteres")
-    @Column(name = "car", nullable = false)
-    private String car;
-
     @NotBlank(message = "La placa no puede estar vacía")
     @Size(max = 6, message = "La placa no puede exceder los 6 caracteres")
     @Column(name = "plate", nullable = false, unique = true)

@@ -16,7 +16,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -140,12 +142,31 @@ public class ServiceFare implements IServiceFare {
             throw new AllDataRequiredException("All data is required");
         }
 
+        // Verificar si la tarifa ya existe
         Optional<Fare> existingFare = fareRepository.findByName(fareDto.getName());
         if (existingFare.isPresent()) {
             logger.warn("Fare with name {} already exists", fareDto.getName());
             throw new FareExist("Fare with name " + fareDto.getName() + " already exists");
         }
 
+        // Validación de solapamiento de horas
+        List<Fare> overlappingFares = fareRepository.findAll(); // Obtener todas las tarifas existentes
+
+        for (Fare existing : overlappingFares) {
+            // Comparar las horas
+            LocalTime newStartTime = LocalTime.parse(fareDto.getStartTime());
+            LocalTime newEndTime = LocalTime.parse(fareDto.getEndTime());
+            LocalTime existingStartTime = LocalTime.parse(existing.getStartTime());
+            LocalTime existingEndTime = LocalTime.parse(existing.getEndTime());
+
+            // Comprobar si hay solapamiento de horarios
+            if ((newStartTime.isBefore(existingEndTime) && newEndTime.isAfter(existingStartTime))) {
+                logger.warn("Time range overlaps with existing fare: {}", existing.getName());
+                throw new IllegalArgumentException("Time range overlaps with existing fare: " + existing.getName());
+            }
+        }
+
+        // Crear y guardar la nueva tarifa
         Fare fare = new Fare();
         fare.setName(fareDto.getName());
         fare.setStartTime(fareDto.getStartTime());
@@ -168,6 +189,7 @@ public class ServiceFare implements IServiceFare {
 
         return fare;
     }
+
 
     @Override
     public Optional<Fare> findByName(String name) {
