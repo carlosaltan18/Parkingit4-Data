@@ -21,10 +21,7 @@ import jakarta.validation.Valid;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Service
 public class RegisterService implements IRegisterService {
@@ -68,9 +65,9 @@ public class RegisterService implements IRegisterService {
     public RegisterDTO RegistroDeSalida(String plate) {
         LocalDateTime endDate = LocalDateTime.now(); // Fecha actual como endDate
 
-        // Buscar el registro por la placa (plate)
-        Register register = registerRepository.findByPlate(plate)
-                .orElseThrow(() -> new IllegalArgumentException("Registro con placa " + plate + " no encontrado"));
+        // Buscar el registro activo por la placa
+        Register register = registerRepository.findActiveRegisterByPlate(plate)
+                .orElseThrow(() -> new IllegalArgumentException("Registro activo con placa " + plate + " no encontrado"));
 
         register.setEndDate(endDate); // Establecer fecha de salida
 
@@ -78,9 +75,18 @@ public class RegisterService implements IRegisterService {
         long minutesParked = java.time.Duration.between(register.getStartDate(), endDate).toMinutes();
 
         // Buscar la tarifa adecuada
-        Optional<Fare> optionalFare = fareRepository.findFareByDuration(minutesParked);
-        Fare fare = optionalFare.orElseGet(() -> fareRepository.findById(1L)
-                .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada")));
+        List<Fare> fares = fareRepository.findFareByDuration(minutesParked);
+
+        Fare fare;
+
+        if (fares.size() == 1) {
+            fare = fares.get(0);
+        } else if (fares.isEmpty()) {
+            fare = fareRepository.findById(1L)
+                    .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada"));
+        } else {
+            fare = seleccionarTarifaAdecuada(fares);
+        }
 
         register.setFare(fare);
 
@@ -103,6 +109,11 @@ public class RegisterService implements IRegisterService {
         );
 
         return convertToDTO(updatedRegister);
+    }
+    private Fare seleccionarTarifaAdecuada(List<Fare> fares) {
+        return fares.stream()
+                .min(Comparator.comparing(Fare::getPrice))
+                .orElseThrow(() -> new IllegalArgumentException("No se pudo seleccionar una tarifa adecuada"));
     }
 
 
