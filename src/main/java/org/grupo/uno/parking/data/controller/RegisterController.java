@@ -13,6 +13,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,7 +24,9 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/registers")
@@ -130,17 +134,27 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // Nuevo endpoint para obtener registros por ID de estacionamiento
+
+
     @RolesAllowed("REGISTER")
     @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
-    public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId,
-                                                                     @PathVariable LocalDate startDate,
-                                                                     @PathVariable LocalDate endDate) {
+    public ResponseEntity<Map<String, Object>> getRegistersByParkingId(@PathVariable Long parkingId,
+                                                                       @PathVariable LocalDate startDate,
+                                                                       @PathVariable LocalDate endDate,
+                                                                       @RequestParam(defaultValue = "0") int page,
+                                                                       @RequestParam(defaultValue = "10") int size) {
         try {
             LocalDateTime startDateTime = startDate.atStartOfDay();
             LocalDateTime endDateTime = endDate.atTime(LocalTime.MAX);
-            List<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDateTime, endDateTime);
-            return new ResponseEntity<>(registers, HttpStatus.OK);
+            Pageable paging = PageRequest.of(page, size);
+            Page<RegisterDTO> registers = registerService.generateReportByParkingId(parkingId, startDateTime, endDateTime, paging);
+            Map<String, Object> response = new HashMap<>();
+            response.put("registers", registers.getContent());
+            response.put("currentPage", registers.getNumber());
+            response.put("totalItems", registers.getTotalElements());
+            response.put("totalPages", registers.getTotalPages());
+
+            return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (Exception e) {
             logger.error("Error generando reporte por ID de estacionamiento: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);

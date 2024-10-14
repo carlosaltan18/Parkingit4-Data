@@ -228,19 +228,17 @@ public class RegisterService implements IRegisterService {
     }
 
     @Override
-    public List<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
+    public Page<RegisterDTO> generateReportByParkingId(Long parkingId, LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         logger.info("Generating report for parking ID: {}", parkingId);
 
-        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
+        Page<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate, pageable);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
         }
 
         // Convertir los registros a DTO
-        List<RegisterDTO> registerDTOs = registers.stream()
-                .map(this::convertToDTO)
-                .toList();
+        Page<RegisterDTO> registerDTOsPage = registers.map(this::convertToDTO);
 
         // Auditar la generación del reporte
         audithService.createAudit(
@@ -248,19 +246,19 @@ public class RegisterService implements IRegisterService {
                 "Generated report for parking ID: " + parkingId,
                 "REPORT",
                 null,
-                convertListToMap(registerDTOs),
+                convertListToMap(registerDTOsPage.getContent()),
                 "SUCCESS"
         );
 
         logger.info("Report generated successfully for parking ID: {}", parkingId);
-        return registerDTOs;
+        return registerDTOsPage;
     }
 
     @Override
     public List<RegisterDTO> generateReportByParkingIdPDF(Long parkingId, LocalDateTime startDate, LocalDateTime endDate) {
         logger.info("Generating PDF report for parking ID: {}", parkingId);
 
-        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRange(parkingId, startDate, endDate);
+        List<Register> registers = registerRepository.findActiveRegistersByParkingIdAndDateRangePDF(parkingId, startDate, endDate);
         if (registers.isEmpty()) {
             logger.warn("No registers found for parking ID: {}", parkingId);
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
