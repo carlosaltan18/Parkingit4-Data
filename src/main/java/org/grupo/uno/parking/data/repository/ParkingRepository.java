@@ -14,5 +14,5 @@ import java.util.List;
 public interface ParkingRepository extends JpaRepository<Parking, Long> {
     Page<Parking> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
-
+    List<Parking> findByStatus(boolean status);
 }

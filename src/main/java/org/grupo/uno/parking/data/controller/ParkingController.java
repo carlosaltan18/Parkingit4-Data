@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,6 +29,13 @@ public class ParkingController {
     public ParkingController(ParkingService parkingService, UserRepository userRepository) {
         this.parkingService = parkingService;
         this.userRepository = userRepository;
+    }
+
+    @RolesAllowed("PARKING")
+    @GetMapping("/active")
+    public ResponseEntity<List<Map<String, Object>>> getActiveParkings() {
+        List<Map<String, Object>> activeParkings = parkingService.getActiveParkings();
+        return ResponseEntity.ok(activeParkings);
     }
 
     @RolesAllowed("PARKING")

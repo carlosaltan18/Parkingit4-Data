@@ -16,8 +16,10 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ParkingService implements IParkingService {
@@ -88,6 +90,24 @@ public class ParkingService implements IParkingService {
             return parkingDTO;
         });
     }
+
+    @Override
+    public List<Map<String, Object>> getActiveParkings() {
+        logger.info("Fetching all active parkings");
+
+        List<Parking> activeParkings = parkingRepository.findByStatus(true);
+
+        // Convertir los parqueos activos a una lista de mapas con solo los campos necesarios
+        return activeParkings.stream().map(parking -> {
+            Map<String, Object> parkingInfo = new HashMap<>();
+            parkingInfo.put("id", parking.getParkingId());
+            parkingInfo.put("name", parking.getName());
+            parkingInfo.put("status", parking.getStatus());
+            return parkingInfo;
+        }).collect(Collectors.toList());
+    }
+
+
     @Override
     public Page<Map<String, Object>> searchParkingByName(String name, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);

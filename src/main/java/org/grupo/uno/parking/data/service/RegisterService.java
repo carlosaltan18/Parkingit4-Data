@@ -61,6 +61,27 @@ public class RegisterService implements IRegisterService {
         return convertToDTO(register);
     }
 
+    @Override
+    public Page<Map<String, Object>> listarRegistrosSimplificados(int page, int size) {
+        // Definir el objeto Pageable para la paginación
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Recuperar los registros paginados de la base de datos
+        Page<Register> registrosPaginados = registerRepository.findAll(pageable);
+
+        // Crear una lista de mapas para almacenar los campos específicos
+        Page<Map<String, Object>> registrosSimplificados = registrosPaginados.map(registro -> {
+            Map<String, Object> registroSimplificado = new HashMap<>();
+            registroSimplificado.put("startTime", registro.getStartDate());
+            registroSimplificado.put("endTime", registro.getEndDate());
+            registroSimplificado.put("fareId", registro.getFare() != null ? registro.getFare().getFareId() : null);
+            registroSimplificado.put("total", registro.getTotal());
+            return registroSimplificado;
+        });
+
+        return registrosSimplificados;
+    }
+
 
     @Override
     public RegisterDTO RegistroDeSalida(String plate) {

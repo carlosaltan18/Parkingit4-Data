@@ -5,11 +5,15 @@ import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface IRegisterService {
 
     RegisterDTO RegistroDeEntrada(String plate, long parkingId);
+
+
+    Page<Map<String, Object>> listarRegistrosSimplificados(int page, int size);
 
     RegisterDTO RegistroDeSalida(String plate);
 

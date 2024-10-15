@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/registers")
@@ -51,6 +52,21 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
+
+    @RolesAllowed("REGISTER")
+    @GetMapping("/listarRegistrosSimplificados")
+    public ResponseEntity<Page<Map<String, Object>>> listarRegistrosSimplificados(
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "10") int size) {
+        try {
+            Page<Map<String, Object>> registrosSimplificados = registerService.listarRegistrosSimplificados(page, size);
+            return new ResponseEntity<>(registrosSimplificados, HttpStatus.OK);
+        } catch (Exception e) {
+            logger.error("Error listando registros simplificados: ", e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     // Endpoint para registrar la salida de un vehículo
     @RolesAllowed("REGISTER")
     @PutMapping("/salida/{plate}")
