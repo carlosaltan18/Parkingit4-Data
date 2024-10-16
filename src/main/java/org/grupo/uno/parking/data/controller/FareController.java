@@ -51,16 +51,22 @@ public class FareController {
 
     @RolesAllowed("FARE")
     @GetMapping("")
-    public ResponseEntity<Map<String, Object>> getAllFares(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "10") int size){
+    public ResponseEntity<Map<String, Object>> getAllFares(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String name) {
+
         Map<String, Object> response = new HashMap<>();
-        try{
-            Page<Fare> fares = fareService.getAllFares(page, size);
+        try {
+            Page<Fare> fares = fareService.getAllFares(page, size, name);
+
             response.put(MESSAGE, "Fares retrieved successfully");
             response.put("fares", fares.getContent());
             response.put("totalPages", fares.getTotalPages());
             response.put("currentPage", fares.getNumber());
             response.put("totalElements", fares.getTotalElements());
             logger.info("Fares retrieved: totalElements={}, currentPage={}", fares.getTotalElements(), fares.getNumber());
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             logger.error("Error retrieving fares: {}", e.getMessage());

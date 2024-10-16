@@ -30,10 +30,15 @@ public class ServiceFare implements IServiceFare {
     private final AudithService audithService;
 
     @Override
-    public Page<Fare> getAllFares(int page, int size) {
+    public Page<Fare> getAllFares(int page, int size, String name) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Fare> fares = fareRepository.findAll(pageable);
+        Page<Fare> fares;
 
+        if (name == null || name.isEmpty()) {
+            fares = fareRepository.findAll(pageable);
+        } else {
+            fares = fareRepository.findByNameContainingIgnoreCase(name, pageable);
+        }
         // Auditar la recuperación de tarifas
         audithService.createAudit(
                 "Fare",

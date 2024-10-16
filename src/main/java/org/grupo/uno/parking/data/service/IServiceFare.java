@@ -9,7 +9,7 @@ import java.util.Optional;
 
 public interface IServiceFare {
 
-    Page<Fare> getAllFares(int page, int size);
+    Page<Fare> getAllFares(int page, int size, String name);
     Optional<Fare> findFareById(Long id);
     void delete(Long idFare);
     void updateFare(FareDto fareDto, Long id);

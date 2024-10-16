@@ -1,6 +1,8 @@
 package org.grupo.uno.parking.data.repository;
 
 import org.grupo.uno.parking.data.model.Fare;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -11,6 +13,7 @@ import java.util.Optional;
 
 @Repository
 public interface FareRepository extends JpaRepository<Fare, Long> {
+    Page<Fare> findByNameContainingIgnoreCase(String name, Pageable pageable);
 
     // Buscar tarifa por nombre
     @Query("SELECT f FROM Fare f WHERE f.name = :name")
