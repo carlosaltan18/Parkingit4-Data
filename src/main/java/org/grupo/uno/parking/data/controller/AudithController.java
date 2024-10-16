@@ -8,9 +8,7 @@ import org.grupo.uno.parking.data.model.Audith;
 import org.grupo.uno.parking.data.service.AudithService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,16 +19,25 @@ import java.time.format.DateTimeParseException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.hibernate.validator.internal.metadata.core.ConstraintHelper.MESSAGE;
-
 @RestController
 @RequestMapping("/audith")
 public class AudithController {
 
-    @Autowired
-    private AudithService audithService;
+    private final AudithService audithService;
 
     private static final Logger logger = LoggerFactory.getLogger(AudithController.class);
+
+    public AudithController(AudithService audithService) {
+        this.audithService = audithService;
+    }
+
+    private static final String MESSAGE_KEY = "message";
+    private static final String AUDITHS_KEY = "audiths";
+    private static final String TOTAL_PAGES_KEY = "totalPages";
+    private static final String CURRENT_PAGE_KEY = "currentPage";
+    private static final String TOTAL_ELEMENTS_KEY = "totalElements";
+    private static final String AUDITS_RECOVERED_SUCCESS = "Auditorías recuperadas exitosamente";
+
 
     @RolesAllowed("AUDITH")
     @GetMapping("")
@@ -38,14 +45,15 @@ public class AudithController {
         Map<String, Object> response = new HashMap<>();
         try {
             Page<Audith> audithPage = audithService.getAllAudits(page, size);
-            response.put(MESSAGE, "Auditorías recuperadas exitosamente");
-            response.put("audiths", audithPage.getContent());
-            response.put("totalPages", audithPage.getTotalPages());
-            response.put("currentPage", audithPage.getNumber());
-            response.put("totalElements", audithPage.getTotalElements());
+            response.put(MESSAGE_KEY, AUDITS_RECOVERED_SUCCESS);
+            response.put(AUDITHS_KEY, audithPage.getContent());
+            response.put(TOTAL_PAGES_KEY, audithPage.getTotalPages());
+            response.put(CURRENT_PAGE_KEY, audithPage.getNumber());
+            response.put(TOTAL_ELEMENTS_KEY, audithPage.getTotalElements());
             logger.info("Get audits, total elements: {}, current page: {}", audithPage.getTotalElements(), audithPage.getNumber());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            logger.error("Error al recuperar auditorías: {}", e.getMessage(), e);
             response.put("err", "Error al recuperar auditorías: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
@@ -64,13 +72,14 @@ public class AudithController {
         Map<String, Object> response = new HashMap<>();
         try {
             Page<Audith> auditsPage = audithService.getAuditsByEntity(entity, page, size);
-            response.put(MESSAGE, "Auditorías por entidad recuperadas exitosamente");
-            response.put("audiths", auditsPage.getContent());
-            response.put("totalPages", auditsPage.getTotalPages());
-            response.put("currentPage", auditsPage.getNumber());
-            response.put("totalElements", auditsPage.getTotalElements());
+            response.put(MESSAGE_KEY, AUDITS_RECOVERED_SUCCESS);
+            response.put(AUDITHS_KEY, auditsPage.getContent());
+            response.put(TOTAL_PAGES_KEY, auditsPage.getTotalPages());
+            response.put(CURRENT_PAGE_KEY, auditsPage.getNumber());
+            response.put(TOTAL_ELEMENTS_KEY, auditsPage.getTotalElements());
             return ResponseEntity.ok(response);
         } catch (Exception e) {
+            logger.error("Error al recuperar auditorías por entidad: {}", e.getMessage(), e);
             response.put("err", "Error al recuperar auditorías: " + e.getMessage());
             return ResponseEntity.internalServerError().body(response);
         }
@@ -84,18 +93,18 @@ public class AudithController {
             LocalDateTime startDate = LocalDateTime.parse(dateRangeRequest.getStartDate());
             LocalDateTime endDate = LocalDateTime.parse(dateRangeRequest.getEndDate());
             Page<Audith> auditsPage = audithService.getAuditsByDateRange(startDate, endDate, page, size);
-            response.put(MESSAGE, "Auditorías por rango de fechas recuperadas exitosamente");
-            response.put("audiths", auditsPage.getContent());
-            response.put("totalPages", auditsPage.getTotalPages());
-            response.put("currentPage", auditsPage.getNumber());
-            response.put("totalElements", auditsPage.getTotalElements());
+            response.put(MESSAGE_KEY, AUDITS_RECOVERED_SUCCESS);
+            response.put(AUDITHS_KEY, auditsPage.getContent());
+            response.put(TOTAL_PAGES_KEY, auditsPage.getTotalPages());
+            response.put(CURRENT_PAGE_KEY, auditsPage.getNumber());
+            response.put(TOTAL_ELEMENTS_KEY, auditsPage.getTotalElements());
             return ResponseEntity.ok(response);
         } catch (DateTimeParseException e) {
-            logger.error("Error al analizar las fechas: {}", e.getMessage());
+            logger.error("Error al analizar las fechas: {}", e.getMessage(), e);
             response.put("err", "Error al analizar las fechas: " + e.getMessage());
             return ResponseEntity.badRequest().body(response);
         } catch (Exception e) {
-            logger.error("Error recuperando auditorías por rango de fechas: {}", e.getMessage());
+            logger.error("Error recuperando auditorías por rango de fechas: {}", e.getMessage(), e);
             response.put("err", "Error recuperando auditorías: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
@@ -115,6 +124,7 @@ public class AudithController {
             );
             return ResponseEntity.ok("Auditoría creada exitosamente");
         } catch (Exception e) {
+            logger.error("Error al crear la auditoría: {}", e.getMessage(), e);
             return ResponseEntity.status(500).body("Error al crear la auditoría: " + e.getMessage());
         }
     }

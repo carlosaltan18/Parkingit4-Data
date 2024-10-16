@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/fare")
@@ -36,16 +35,16 @@ public class FareController {
         Map<String, String> response = new HashMap<>();
         try{
             fareService.addFare(dto);
-            response.put(MESSAGE, "Fare Saved: " + dto.getName());
-            logger.info("Fare with name: {} and price: {} add", dto.getName(), dto.getPrice());
+            response.put(MESSAGE, "Fare saved: " + dto.getName());
+            logger.info("Fare added: name={}, price={}", dto.getName(), dto.getPrice());
             return ResponseEntity.ok(response);
-        }catch (AllDataRequiredException e){
+        } catch (AllDataRequiredException e) {
             response.put(ERROR, e.getMessage());
-            logger.warn("All data is required");
+            logger.warn("All data is required: {}", e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
-        }catch (Exception e){
-            logger.error("Fail add fare with name: {}", dto.getName());
-            response.put(ERROR, "An Error ocurred add fare"+ e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error adding fare: {}", e.getMessage());
+            response.put(ERROR, "An error occurred while adding fare: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -56,91 +55,89 @@ public class FareController {
         Map<String, Object> response = new HashMap<>();
         try{
             Page<Fare> fares = fareService.getAllFares(page, size);
-            response.put(MESSAGE, "fares retrieved successfully");
-            response.put("users", fares.getContent());
+            response.put(MESSAGE, "Fares retrieved successfully");
+            response.put("fares", fares.getContent());
             response.put("totalPages", fares.getTotalPages());
             response.put("currentPage", fares.getNumber());
             response.put("totalElements", fares.getTotalElements());
-            logger.info("Fares get with exit pages: {}, elements: {}",page, fares.getTotalElements());
+            logger.info("Fares retrieved: totalElements={}, currentPage={}", fares.getTotalElements(), fares.getNumber());
             return ResponseEntity.ok(response);
-        }catch (Exception e){
-            logger.error("Fail get fares");
-            response.put(ERROR, "An Error ocurred get all fares"+ e.getMessage());
+        } catch (Exception e) {
+            logger.error("Error retrieving fares: {}", e.getMessage());
+            response.put(ERROR, "An error occurred while retrieving fares: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
     }
 
     @RolesAllowed("FARE")
     @GetMapping("/{id}")
-    public ResponseEntity<Map<String, Object>> getFareId(@PathVariable Long id){
+    public ResponseEntity<Map<String, Object>> getFareById(@PathVariable Long id){
         Map<String, Object> response = new HashMap<>();
-        try{
-            Optional<Fare> fares = fareService.findFareById(id);
-            response.put(MESSAGE, fares.get());
-            logger.info("FARE find {} is correct", id);
+        try {
+            Fare fare = fareService.findFareById(id).orElseThrow(() -> new EntityNotFoundException("Fare not found for ID: " + id));
+            response.put(MESSAGE, fare);
+            logger.info("Fare found for ID: {}", id);
             return ResponseEntity.ok(response);
-        }catch (Exception e){
-            logger.error("Fail get fare");
-            response.put(ERROR, "An Error ocurred find fare id "+ e.getMessage());
+        } catch (EntityNotFoundException e) {
+            logger.error("Fare not found: {}", e.getMessage());
+            response.put(ERROR, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Error finding fare: {}", e.getMessage());
+            response.put(ERROR, "An error occurred while finding fare: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
     }
 
     @RolesAllowed("FARE")
     @GetMapping("/name/{name}")
-    public ResponseEntity<Map<String, Object>> getFareName(@PathVariable String name){
+    public ResponseEntity<Map<String, Object>> getFareByName(@PathVariable String name){
         Map<String, Object> response = new HashMap<>();
-        try{
-            Optional<Fare> fares = fareService.findByName(name);
-            response.put(MESSAGE, fares.get());
-            logger.info("FARE find with name:  {} is correct", name);
+        try {
+            Fare fare = fareService.findByName(name).orElseThrow(() -> new EntityNotFoundException("Fare not found for name: " + name));
+            response.put(MESSAGE, fare);
+            logger.info("Fare found for name: {}", name);
             return ResponseEntity.ok(response);
-        }catch (Exception e){
-            logger.error("Fail get fare with name {}", name);
-            response.put(ERROR, "An Error ocurred find fare name "+ e.getMessage());
+        } catch (EntityNotFoundException e) {
+            logger.error("Fare not found for name: {}", e.getMessage());
+            response.put(ERROR, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (Exception e) {
+            logger.error("Error finding fare: {}", e.getMessage());
+            response.put(ERROR, "An error occurred while finding fare: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
     }
 
     @RolesAllowed("FARE")
     @DeleteMapping("/deleteFare/{id}")
     public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id){
         Map<String, String> response = new HashMap<>();
-        try{
+        try {
             fareService.delete(id);
-            response.put(MESSAGE, "dalete fare succesfully");
-            logger.info("FARE was delete {}", id);
-            return  ResponseEntity.ok(response);
-        }catch (IllegalArgumentException | DataAccessException e){
-            response.put(MESSAGE, ERROR);
-            logger.error("Fail delete fare, id is not found");
-            response.put("err", e.getMessage());
-            return ResponseEntity.internalServerError().body(response);
-        }catch(Exception e){
-            logger.error("Fail delete fare");
-            response.put(MESSAGE, ERROR);
-            response.put("err", "An Error delete fare  "+ e.getMessage());
+            response.put(MESSAGE, "Fare deleted successfully");
+            logger.info("Fare deleted: ID={}", id);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | DataAccessException e) {
+            logger.error("Error deleting fare: ID={} - {}", id, e.getMessage());
+            response.put(ERROR, "An error occurred while deleting fare: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
-
     }
 
     @RolesAllowed("FARE")
     @PutMapping("/updateFare/{id}")
-    public  ResponseEntity<Map<String, String>> updateFare(@PathVariable Long id, @RequestBody FareDto dto){
+    public ResponseEntity<Map<String, String>> updateFare(@PathVariable Long id, @RequestBody FareDto dto){
         Map<String, String> response = new HashMap<>();
-        try{
+        try {
             fareService.updateFare(dto, id);
-            logger.info("Fare {} updated", dto.getName());
-            response.put(MESSAGE, "Fare Updated Successfully " + dto );
+            logger.info("Fare updated: ID={}, name={}", id, dto.getName());
+            response.put(MESSAGE, "Fare updated successfully: " + dto.getName());
             return ResponseEntity.ok(response);
-        }catch (EntityNotFoundException e){
-            logger.error("Fare with id not found");
-            response.put(ERROR, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (EntityNotFoundException e) {
+            logger.error("Error updating fare: {}", e.getMessage());
+            response.put(ERROR, "Fare not found: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
     }
 }
