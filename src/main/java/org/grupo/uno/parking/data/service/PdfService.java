@@ -13,6 +13,7 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.property.TextAlignment;
 import com.itextpdf.layout.property.UnitValue;
 import org.grupo.uno.parking.data.dto.RegisterDTO;
+import org.grupo.uno.parking.data.exceptions.ExceptionPdf;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
@@ -25,7 +26,7 @@ public class PdfService {
 
     private static final int NUMBER_OF_COLUMNS = 5;
 
-    public byte[] generatePdfFromJson(String json) throws RuntimeException {
+    public byte[] generatePdfFromJson(String json) {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
 
@@ -33,7 +34,7 @@ public class PdfService {
         try {
             registers = objectMapper.readValue(json, new TypeReference<List<RegisterDTO>>() {});
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse JSON to RegisterDTO", e);
+            throw new ExceptionPdf("Failed to parse JSON to RegisterDTO", e);
         }
 
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -52,7 +53,7 @@ public class PdfService {
 
             Table table = new Table(NUMBER_OF_COLUMNS);
             table.setWidth(UnitValue.createPercentValue(100));
-            for (String header : new String[]{"ID", "Plate", "Total", "Start Date", "End Date"}) {
+            for (String header : new String[]{"ID", "Placa", "Total", "Fecha entrada", "Fecha Salida"}) {
                 Cell headerCell = new Cell().add(new Paragraph(header))
                         .setBold()
                         .setTextAlignment(TextAlignment.CENTER)
@@ -82,7 +83,7 @@ public class PdfService {
                     .setMarginTop(20);
             document.add(footer);
         } catch (Exception e) {
-            throw new RuntimeException("Error generating PDF", e);
+            throw new ExceptionPdf("Error generating PDF", e);
         }
 
         return byteArrayOutputStream.toByteArray();
