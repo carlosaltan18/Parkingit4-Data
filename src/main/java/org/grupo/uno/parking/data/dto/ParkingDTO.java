@@ -22,7 +22,7 @@ public class ParkingDTO {
     @NotBlank(message = "Address cannot be blank")
     private String address;
 
-    private String phone;  // Este campo puede ser opcional, por lo que no tiene validación
+    private String phone;
 
     @Min(value = 1, message = "The number of spaces must be at least 1")
     private int spaces;

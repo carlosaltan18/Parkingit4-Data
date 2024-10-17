@@ -4,7 +4,6 @@ import jakarta.persistence.EntityNotFoundException;
 import lombok.AllArgsConstructor;
 import org.grupo.uno.parking.data.dto.FareDto;
 import org.grupo.uno.parking.data.exception.AllDataRequiredException;
-import org.grupo.uno.parking.data.exception.DeleteException;
 import org.grupo.uno.parking.data.exceptions.FareExist;
 import org.grupo.uno.parking.data.model.Fare;
 import org.grupo.uno.parking.data.repository.FareRepository;
@@ -17,7 +16,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -28,6 +26,9 @@ public class ServiceFare implements IServiceFare {
     private static final Logger logger = LoggerFactory.getLogger(ServiceFare.class);
     private final FareRepository fareRepository;
     private final AudithService audithService;
+
+    private static final String MESSAGE1="This Fare doesn't exist";
+    private  static final String SUCCESS="Success";
 
     @Override
     public Page<Fare> getAllFares(int page, int size) {
@@ -41,7 +42,7 @@ public class ServiceFare implements IServiceFare {
                 "READ",
                 null,  // Objeto no aplica
                 convertToMap(fares), // Respuesta
-                "SUCCESS"
+                SUCCESS
         );
 
         return fares;
@@ -55,7 +56,7 @@ public class ServiceFare implements IServiceFare {
         }
 
         Fare fare = fareRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("This Fare doesn't exist"));
+                .orElseThrow(() -> new EntityNotFoundException(""));
 
         // Auditar la búsqueda de tarifa
         audithService.createAudit(
@@ -64,7 +65,7 @@ public class ServiceFare implements IServiceFare {
                 "READ",
                 null,  // Objeto no aplica
                 convertToMap(fare),  // Respuesta
-                "SUCCESS"
+                SUCCESS
         );
 
         return Optional.of(fare);
@@ -79,7 +80,7 @@ public class ServiceFare implements IServiceFare {
 
         try {
             Fare fareToDelete = fareRepository.findById(idFare)
-                    .orElseThrow(() -> new EntityNotFoundException("This Fare doesn't exist"));
+                    .orElseThrow(() -> new EntityNotFoundException(MESSAGE1));
             fareRepository.deleteById(idFare);
 
             // Auditar la eliminación de la tarifa
@@ -89,11 +90,10 @@ public class ServiceFare implements IServiceFare {
                     "DELETE",
                     convertToMap(fareToDelete),  // Objeto de la tarifa eliminada
                     null,
-                    "SUCCESS"
+                    SUCCESS
             );
         } catch (DataAccessException e) {
             logger.error("Failed deleting fare", e);
-            throw new DeleteException("Error deleting fare ", e);
         }
     }
 
@@ -101,11 +101,11 @@ public class ServiceFare implements IServiceFare {
     public void updateFare(FareDto fareDto, Long id) {
         if (!fareRepository.existsById(id)) {
             logger.warn("Fare not exist with this id");
-            throw new EntityNotFoundException("This Fare doesn't exist");
+            throw new EntityNotFoundException(MESSAGE1);
         }
 
         Fare fare = fareRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("This Fare doesn't exist"));
+                .orElseThrow(() -> new EntityNotFoundException(MESSAGE1));
 
         if (fareDto.getName() != null) {
             Optional<Fare> existingFareWithName = fareRepository.findByName(fareDto.getName());

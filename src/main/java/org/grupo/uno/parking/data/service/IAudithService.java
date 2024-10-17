@@ -1,13 +1,9 @@
 package org.grupo.uno.parking.data.service;
 
-import org.grupo.uno.parking.data.dto.AudithDTO;
 import org.grupo.uno.parking.data.model.Audith;
 import org.springframework.data.domain.Page;
-
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 public interface IAudithService {
 

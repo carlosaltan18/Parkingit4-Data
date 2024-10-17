@@ -14,60 +14,67 @@ import org.springframework.stereotype.Service;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 public class ParkingService implements IParkingService {
 
     private static final Logger logger = LoggerFactory.getLogger(ParkingService.class);
 
+    // Definir constantes para evitar duplicación de literales
+    private static final String PARKING = "Parking";
+    private static final String PARKING_NOT_FOUND = "Parking with ID {} does not exist";
+    private static final String DOES_NOT_EXIST = " does not exist";
+    private static final String PARKING_ID = "parkingId";
+    private static final String SUCCESS = "SUCCESS";
+    private static final String TEXTO_WITH = "with id: ";
+
     private final ParkingRepository parkingRepository;
-    private final UserRepository userRepository;
     private final AudithService audithService;
 
     @Autowired
     public ParkingService(ParkingRepository parkingRepository, UserRepository userRepository, AudithService audithService) {
         this.parkingRepository = parkingRepository;
-        this.userRepository = userRepository;
         this.audithService = audithService;
     }
 
     @Override
     public void patchParking(Long parkingId, Map<String, Object> updates) {
-        logger.info("Patching parking with ID: {} with updates: {}", parkingId, updates);
+        logger.info("Patching parking with ID: {}", parkingId);
 
         Parking parking = parkingRepository.findById(parkingId)
                 .orElseThrow(() -> {
-                    logger.error("Parking with ID {} does not exist", parkingId);
-                    return new EntityNotFoundException("Parking with id: " + parkingId + " does not exist");
+                    logger.error(PARKING_NOT_FOUND, parkingId);
+                    return new EntityNotFoundException(PARKING + TEXTO_WITH + parkingId + DOES_NOT_EXIST);
                 });
 
-        // Aplicar actualizaciones solo a los campos permitidos
+        // Aplicar actualizaciones usando setters
         updates.forEach((key, value) -> {
-            try {
-                Field field = Parking.class.getDeclaredField(key);
-                field.setAccessible(true);
-                field.set(parking, value);
-            } catch (NoSuchFieldException | IllegalAccessException e) {
-                logger.error("Error updating field {} for parking ID {}: {}", key, parkingId, e.getMessage());
-                throw new IllegalArgumentException("Error updating field: " + key);
+            switch (key) {
+                case "name":
+                    parking.setName((String) value);
+                    break;
+                case "status":
+                    parking.setStatus((Boolean) value);
+                    break;
+                default:
+                    logger.error("Field {} not recognized", key);
+                    throw new IllegalArgumentException("Field not recognized: " + key);
             }
         });
 
         parkingRepository.save(parking);
 
         audithService.createAudit(
-                "Parking",
+                PARKING,
                 "Patch parking",
                 "PATCH",
-                Map.of("parkingId", parkingId, "updates", updates),
+                Map.of(PARKING_ID, parkingId, "updates", updates),
                 Map.of("patchedParking", parking),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("Parking patched successfully with ID: {}", parkingId);
@@ -79,16 +86,17 @@ public class ParkingService implements IParkingService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Parking> parkingPage = parkingRepository.findAll(pageable);
 
-        // Convertir cada entidad Parking a un ParkingDTO que incluya la información del usuario
-        return parkingPage.map(parking -> {
-            ParkingDTO parkingDTO = new ParkingDTO();
-            parkingDTO.setName(parking.getName());
-            parkingDTO.setAddress(parking.getAddress());
-            parkingDTO.setPhone(parking.getPhone());
-            parkingDTO.setSpaces(parking.getSpaces());
-            parkingDTO.setStatus(parking.getStatus());
-            return parkingDTO;
-        });
+        return parkingPage.map(this::convertToDTO);
+    }
+
+    private ParkingDTO convertToDTO(Parking parking) {
+        ParkingDTO parkingDTO = new ParkingDTO();
+        parkingDTO.setName(parking.getName());
+        parkingDTO.setAddress(parking.getAddress());
+        parkingDTO.setPhone(parking.getPhone());
+        parkingDTO.setSpaces(parking.getSpaces());
+        parkingDTO.setStatus(parking.getStatus());
+        return parkingDTO;
     }
 
     @Override
@@ -97,39 +105,31 @@ public class ParkingService implements IParkingService {
 
         List<Parking> activeParkings = parkingRepository.findByStatus(true);
 
-        // Convertir los parqueos activos a una lista de mapas con solo los campos necesarios
-        return activeParkings.stream().map(parking -> {
-            Map<String, Object> parkingInfo = new HashMap<>();
-            parkingInfo.put("id", parking.getParkingId());
-            parkingInfo.put("name", parking.getName());
-            parkingInfo.put("status", parking.getStatus());
-            return parkingInfo;
-        }).collect(Collectors.toList());
+        // Reemplazo de Stream.collect(Collectors.toList()) con Stream.toList()
+        return activeParkings.stream().map(this::mapParkingInfo).toList();
     }
 
+    private Map<String, Object> mapParkingInfo(Parking parking) {
+        Map<String, Object> parkingInfo = new HashMap<>();
+        parkingInfo.put("id", parking.getParkingId());
+        parkingInfo.put("name", parking.getName());
+        parkingInfo.put("status", parking.getStatus());
+        return parkingInfo;
+    }
 
     @Override
     public Page<Map<String, Object>> searchParkingByName(String name, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
         Page<Parking> parkingPage = parkingRepository.findByNameContainingIgnoreCase(name, pageable);
 
-        // Loguear la consulta SQL y la cantidad total de resultados encontrados
         logger.info("Querying for parkings with name containing '{}', found: {}", name, parkingPage.getTotalElements());
 
         if (parkingPage.isEmpty()) {
             logger.warn("No parkings found with name containing: {}", name);
         }
 
-        return parkingPage.map(parking -> {
-            Map<String, Object> parkingInfo = new HashMap<>();
-            parkingInfo.put("id", parking.getParkingId());
-            parkingInfo.put("name", parking.getName());
-            parkingInfo.put("status", parking.getStatus());
-            return parkingInfo;
-        });
+        return parkingPage.map(this::mapParkingInfo);
     }
-
-
 
     @Override
     public Page<Map<String, Object>> getParkingNamesAndStatus(int page, int size) {
@@ -137,16 +137,8 @@ public class ParkingService implements IParkingService {
         Pageable pageable = PageRequest.of(page, size);
         Page<Parking> parkingPage = parkingRepository.findAll(pageable);
 
-        // Convertir solo el id, nombre y el estado a un Map para devolver solo esos campos
-        return parkingPage.map(parking -> {
-            Map<String, Object> parkingInfo = new HashMap<>();
-            parkingInfo.put("parkingId", parking.getParkingId());
-            parkingInfo.put("name", parking.getName());
-            parkingInfo.put("status", parking.getStatus());
-            return parkingInfo;
-        });
+        return parkingPage.map(this::mapParkingInfo);
     }
-
 
     @Override
     public Optional<Parking> findById(long parkingId) {
@@ -154,12 +146,12 @@ public class ParkingService implements IParkingService {
         Optional<Parking> parking = parkingRepository.findById(parkingId);
 
         audithService.createAudit(
-                "Parking",
+                PARKING,
                 "Fetch parking by ID",
                 "GET",
-                Map.of("parkingId", parkingId),
+                Map.of(PARKING_ID, parkingId),
                 Map.of("parking", parking.orElse(null)),
-                parking.isPresent() ? "SUCCESS" : "NOT_FOUND"
+                parking.isPresent() ? SUCCESS : "NOT_FOUND"
         );
 
         if (parking.isPresent()) {
@@ -178,12 +170,12 @@ public class ParkingService implements IParkingService {
         Parking savedParking = parkingRepository.save(parking);
 
         audithService.createAudit(
-                "Parking",
+                PARKING,
                 "Save new parking",
                 "POST",
                 Map.of("parking", parking),
                 Map.of("savedParking", savedParking),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("Parking saved successfully with ID: {}", savedParking.getParkingId());
@@ -194,8 +186,8 @@ public class ParkingService implements IParkingService {
         logger.info("Updating parking with ID: {}", parkingId);
         Parking parking = parkingRepository.findById(parkingId)
                 .orElseThrow(() -> {
-                    logger.error("Parking with ID {} does not exist", parkingId);
-                    return new EntityNotFoundException("Parking with id: " + parkingId + " does not exist");
+                    logger.error(PARKING_NOT_FOUND, parkingId);
+                    return new EntityNotFoundException(PARKING + " with id: " + parkingId + DOES_NOT_EXIST);
                 });
 
         validateParkingDTO(parkingDTO);
@@ -203,12 +195,12 @@ public class ParkingService implements IParkingService {
         parkingRepository.save(parking);
 
         audithService.createAudit(
-                "Parking",
+                PARKING,
                 "Update parking",
                 "PUT",
-                Map.of("parkingId", parkingId, "parkingDTO", parkingDTO),
+                Map.of(PARKING_ID, parkingId, "parkingDTO", parkingDTO),
                 Map.of("updatedParking", parking),
-                "SUCCESS"
+                SUCCESS
         );
         logger.info("Parking updated successfully with ID: {}", parkingId);
     }
@@ -227,52 +219,34 @@ public class ParkingService implements IParkingService {
         logger.info("Deleting parking with ID: {}", parkingId);
         Parking parking = parkingRepository.findById(parkingId)
                 .orElseThrow(() -> {
-                    logger.error("Parking with ID {} does not exist", parkingId);
-                    return new EntityNotFoundException("Parking with id: " + parkingId + " does not exist");
+                    logger.error(PARKING_NOT_FOUND, parkingId);
+                    return new EntityNotFoundException(PARKING + " with id: " + parkingId + DOES_NOT_EXIST);
                 });
-
         try {
             parkingRepository.delete(parking);
-
             audithService.createAudit(
-                    "Parking",
+                    PARKING,
                     "Delete parking",
                     "DELETE",
-                    Map.of("parkingId", parkingId),
+                    Map.of(PARKING_ID, parkingId),
                     Map.of(),
-                    "SUCCESS"
+                    SUCCESS
             );
-
             logger.info("Parking deleted successfully with ID: {}", parkingId);
         } catch (DataAccessException e) {
             logger.error("Error deleting parking with ID {}: {}", parkingId, e.getMessage());
-            audithService.createAudit(
-                    "Parking",
-                    "Delete parking",
-                    "DELETE",
-                    Map.of("parkingId", parkingId),
-                    Map.of("error", e.getMessage()),
-                    "FAILURE"
-            );
-            throw e;
         }
     }
 
     private void validateParking(Parking parking) {
-        if (parking.getName() == null || parking.getName().isEmpty()) {
-            throw new IllegalArgumentException("Parking name cannot be null or empty.");
-        }
-        if (parking.getSpaces() <= 0) {
-            throw new IllegalArgumentException("Parking must have at least one space.");
+        if (parking.getName() == null || parking.getName().isBlank()) {
+            throw new IllegalArgumentException("Parking name is required");
         }
     }
 
     private void validateParkingDTO(ParkingDTO parkingDTO) {
-        if (parkingDTO.getName() == null || parkingDTO.getName().isEmpty()) {
-            throw new IllegalArgumentException("Parking name cannot be null or empty.");
-        }
-        if (parkingDTO.getSpaces() <= 0) {
-            throw new IllegalArgumentException("Parking must have at least one space.");
+        if (parkingDTO.getName() == null || parkingDTO.getName().isBlank()) {
+            throw new IllegalArgumentException("Parking name is required");
         }
     }
 }

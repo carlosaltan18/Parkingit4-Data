@@ -10,7 +10,6 @@ import org.grupo.uno.parking.data.service.IRegisterService;
 import org.grupo.uno.parking.data.service.PdfService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
@@ -23,18 +22,21 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/registers")
 public class RegisterController {
     private static final Logger logger = LoggerFactory.getLogger(RegisterController.class);
 
-    @Autowired
-    private IRegisterService registerService;
 
-    @Autowired
-    private PdfService pdfService;
+    private final IRegisterService registerService;
+
+    private final PdfService pdfService;
+
+    public RegisterController (IRegisterService registerService, PdfService pdfService) {
+        this.registerService = registerService;
+        this.pdfService = pdfService;
+    }
 
     @RolesAllowed("REGISTER")
     @PostMapping("/entrada")
@@ -45,24 +47,10 @@ public class RegisterController {
         }
         try {
             // Llama al servicio para registrar la entrada, usando plate y parkingId de registerDTO
-            RegisterDTO newRegister = registerService.RegistroDeEntrada(registerDTO.getPlate(), registerDTO.getParkingId());
+            RegisterDTO newRegister = registerService.registroDeEntrada(registerDTO.getPlate(), registerDTO.getParkingId());
             return new ResponseEntity<>(newRegister, HttpStatus.CREATED);
         } catch (Exception e) {
             logger.error("Error en registro de entrada: ", e);
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @RolesAllowed("REGISTER")
-    @GetMapping("/listarRegistrosSimplificados")
-    public ResponseEntity<Page<Map<String, Object>>> listarRegistrosSimplificados(
-            @RequestParam(value = "page", defaultValue = "0") int page,
-            @RequestParam(value = "size", defaultValue = "10") int size) {
-        try {
-            Page<Map<String, Object>> registrosSimplificados = registerService.listarRegistrosSimplificados(page, size);
-            return new ResponseEntity<>(registrosSimplificados, HttpStatus.OK);
-        } catch (Exception e) {
-            logger.error("Error listando registros simplificados: ", e);
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
@@ -72,7 +60,7 @@ public class RegisterController {
     @PutMapping("/salida/{plate}")
     public ResponseEntity<RegisterDTO> registroDeSalida(@PathVariable String plate) {
         try {
-            RegisterDTO updatedRegister = registerService.RegistroDeSalida(plate);
+            RegisterDTO updatedRegister = registerService.registroDeSalida(plate);
             return new ResponseEntity<>(updatedRegister, HttpStatus.OK);
         } catch (IllegalArgumentException e) {
             logger.error("Registro no encontrado: ", e);

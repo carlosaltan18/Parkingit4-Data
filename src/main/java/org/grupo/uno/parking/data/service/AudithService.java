@@ -13,7 +13,6 @@ import org.springframework.util.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -22,10 +21,10 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class AudithService implements IAudithService{
+public class AudithService implements IAudithService {
 
     private static final Logger logger = LoggerFactory.getLogger(AudithService.class);
-    private static final int MAX_LENGTH = 255; // Definir longitud máxima
+    private static final int MAX_LENGTH = 255;
 
     private final AudithRepository audithRepository;
 
@@ -33,13 +32,13 @@ public class AudithService implements IAudithService{
     public AudithService(AudithRepository audithRepository) {
         this.audithRepository = audithRepository;
     }
+
     @Override
     public Audith createAudit(String entity, String description, String operation,
                               Map<String, Object> request, Map<String, Object> response, String result) {
         validateAuditParameters(entity, description, operation);
         logger.info("Creating audit for entity: {}, operation: {}", entity, operation);
 
-        // Recortar los valores que exceden la longitud máxima
         description = truncateIfNecessary(description);
         request = truncateMapValuesIfNecessary(request);
         response = truncateMapValuesIfNecessary(response);
@@ -58,12 +57,14 @@ public class AudithService implements IAudithService{
         logger.info("Audit created successfully with ID: {}", savedAudit.getAuditId());
         return savedAudit;
     }
+
     @Override
     public Page<Audith> getAllAudits(int page, int size) {
         logger.info("Fetching all audits - Page: {}, Size: {}", page, size);
         Pageable pageable = PageRequest.of(page, size);
         return audithRepository.findAll(pageable);
     }
+
     @Override
     public Audith getAuditById(long id) {
         logger.info("Fetching audit by ID: {}", id);
@@ -73,6 +74,7 @@ public class AudithService implements IAudithService{
                     return new IllegalArgumentException("Auditoría no encontrada con ID: " + id);
                 });
     }
+
     @Override
     public Page<Audith> getAuditsByEntity(String entity, int page, int size) {
         if (!StringUtils.hasText(entity)) {
@@ -84,6 +86,7 @@ public class AudithService implements IAudithService{
         Pageable pageable = PageRequest.of(page, size);
         return audithRepository.findByEntityIgnoreCase(entity, pageable);
     }
+
     @Override
     public Page<Audith> getAuditsByStartDate(LocalDateTime startDate, int page, int size) {
         if (startDate == null) {
@@ -91,11 +94,12 @@ public class AudithService implements IAudithService{
             throw new ValidationException("La fecha de inicio no puede estar vacía.");
         }
 
-        LocalDateTime endDate = LocalDateTime.now(); // O puedes definir un valor diferente
+        LocalDateTime endDate = LocalDateTime.now();
         logger.info("Fetching audits between {} and {} - Page: {}, Size: {}", startDate, endDate, page, size);
         Pageable pageable = PageRequest.of(page, size);
         return audithRepository.findByStartDateBetween(startDate, endDate, pageable);
     }
+
     @Override
     public Page<Audith> getAuditsByDateRange(LocalDateTime startDate, LocalDateTime endDate, int page, int size) {
         if (startDate == null || endDate == null) {
@@ -118,7 +122,7 @@ public class AudithService implements IAudithService{
         Page<Audith> auditPage = getAllAudits(page, size);
         return auditPage.stream()
                 .map(this::convertToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public AudithDTO convertToDTO(Audith audit) {
@@ -148,16 +152,7 @@ public class AudithService implements IAudithService{
         return localDateTime.atOffset(ZoneOffset.UTC);
     }
 
-    public void processAudit(Audith audit) {
-        try {
-            logger.info("Processing audit with ID: {}", audit.getAuditId());
-            OffsetDateTime offsetDateTime = convertToOffsetDateTime(audit.getStartDate());
-            // Procesar la auditoría según sea necesario
-        } catch (DateTimeException e) {
-            logger.error("Error al convertir a OffsetDateTime: {}", e.getMessage());
-            throw e;
-        }
-    }
+
 
     private void validateAuditParameters(String entity, String description, String operation) {
         if (!StringUtils.hasText(entity)) {
@@ -183,17 +178,14 @@ public class AudithService implements IAudithService{
     }
 
     private Map<String, Object> truncateMapValuesIfNecessary(Map<String, Object> map) {
-        if (map != null) {
-            map.forEach((key, value) -> {
-                if (value instanceof String) {
-                    String strValue = (String) value;
-                    if (strValue.length() > MAX_LENGTH) {
-                        logger.warn("Truncating map value for key: {} to maximum length of {}", key, MAX_LENGTH);
-                        map.put(key, strValue.substring(0, MAX_LENGTH));
-                    }
-                }
-            });
+        if (map == null || map.isEmpty()) {
+            return map;
         }
-        return map;
+        return map.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        entry -> truncateIfNecessary(String.valueOf(entry.getValue()))
+                ));
     }
 }
+

@@ -23,12 +23,10 @@ import java.util.Optional;
 public class ParkingController {
 
     private final ParkingService parkingService;
-    private final UserRepository userRepository;
 
     @Autowired
     public ParkingController(ParkingService parkingService, UserRepository userRepository) {
         this.parkingService = parkingService;
-        this.userRepository = userRepository;
     }
 
     @RolesAllowed("PARKING")
@@ -75,7 +73,7 @@ public class ParkingController {
 
 
     @RolesAllowed("PARKING")
-    @GetMapping("/namesAndStatus")
+        @GetMapping("/namesAndStatus")
     public ResponseEntity<Page<Map<String, Object>>> getParkingNamesAndStatus(@RequestParam(defaultValue = "0") int page,
                                                                               @RequestParam(defaultValue = "10") int size) {
         Page<Map<String, Object>> parkingNamesAndStatus = parkingService.getParkingNamesAndStatus(page, size);

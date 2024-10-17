@@ -8,7 +8,6 @@ import org.grupo.uno.parking.data.model.Register;
 import org.grupo.uno.parking.data.repository.FareRepository;
 import org.grupo.uno.parking.data.repository.ParkingRepository;
 import org.grupo.uno.parking.data.repository.RegisterRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -29,21 +28,28 @@ public class RegisterService implements IRegisterService {
 
     private static final Logger logger = LoggerFactory.getLogger(RegisterService.class);
 
-    @Autowired
-    private RegisterRepository registerRepository;
+    private final RegisterRepository registerRepository;
+    private  final ParkingRepository parkingRepository;
+    private final  FareRepository fareRepository;
+    private  final AudithService audithService;
 
-    @Autowired
-    private ParkingRepository parkingRepository;
+    private  static final String REGISTER = "Register";
+    private  static final  String SUCCESS = "Succes";
 
-    @Autowired
-    private FareRepository fareRepository;
+    public RegisterService(RegisterRepository registerRepository,
+                       ParkingRepository parkingRepository,
+                       FareRepository fareRepository,
+                       AudithService audithService) {
+        this.registerRepository = registerRepository;
+        this.parkingRepository = parkingRepository;
+        this.fareRepository = fareRepository;
+        this.audithService = audithService;
+    }
 
-    @Autowired
-    private AudithService audithService;
 
 
     @Override
-    public RegisterDTO RegistroDeEntrada(String plate, long parkingId) {
+    public RegisterDTO registroDeEntrada(String plate, long parkingId) {
         // Aquí obtén la entidad de Parking usando parkingId
         Parking parking = parkingRepository.findById(parkingId)
                 .orElseThrow(() -> new EntityNotFoundException("Parking not found"));
@@ -61,30 +67,9 @@ public class RegisterService implements IRegisterService {
         return convertToDTO(register);
     }
 
-    @Override
-    public Page<Map<String, Object>> listarRegistrosSimplificados(int page, int size) {
-        // Definir el objeto Pageable para la paginación
-        Pageable pageable = PageRequest.of(page, size);
-
-        // Recuperar los registros paginados de la base de datos
-        Page<Register> registrosPaginados = registerRepository.findAll(pageable);
-
-        // Crear una lista de mapas para almacenar los campos específicos
-        Page<Map<String, Object>> registrosSimplificados = registrosPaginados.map(registro -> {
-            Map<String, Object> registroSimplificado = new HashMap<>();
-            registroSimplificado.put("startTime", registro.getStartDate());
-            registroSimplificado.put("endTime", registro.getEndDate());
-            registroSimplificado.put("fareId", registro.getFare() != null ? registro.getFare().getFareId() : null);
-            registroSimplificado.put("total", registro.getTotal());
-            return registroSimplificado;
-        });
-
-        return registrosSimplificados;
-    }
-
 
     @Override
-    public RegisterDTO RegistroDeSalida(String plate) {
+    public RegisterDTO registroDeSalida(String plate) {
         LocalDateTime endDate = LocalDateTime.now(); // Fecha actual como endDate
 
         // Buscar el registro activo por la placa
@@ -134,26 +119,16 @@ public class RegisterService implements IRegisterService {
 
         // Auditoría
         audithService.createAudit(
-                "Register",
+                REGISTER,
                 "Registro de salida actualizado",
                 "UPDATE",
                 convertEntityToMap(updatedRegister),
                 null,
-                "SUCCESS"
+                SUCCESS
         );
 
         return convertToDTO(updatedRegister);
     }
-
-
-    private Fare seleccionarTarifaAdecuada(List<Fare> fares) {
-        return fares.stream()
-                .min(Comparator.comparing(Fare::getPrice))
-                .orElseThrow(() -> new IllegalArgumentException("No se pudo seleccionar una tarifa adecuada"));
-    }
-
-
-
 
     @Override
     public Page<RegisterDTO> getAllRegisters(int page, int size) {
@@ -163,12 +138,12 @@ public class RegisterService implements IRegisterService {
 
         // Auditar la recuperación de registros
         audithService.createAudit(
-                "Register",
+                REGISTER,
                 "Retrieved all registers",
                 "READ",
                 null,
                 convertPageToMap(registerDTOs),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("Total registers retrieved: {}", registers.getTotalElements());
@@ -192,12 +167,12 @@ public class RegisterService implements IRegisterService {
 
         // Guardar la auditoría de creación
         audithService.createAudit(
-                "Register",
+                REGISTER,
                 "Registro creado",
                 "CREATE",
                 convertDTOToMap(registerDTO),
                 convertDTOToMap(savedDTO),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("Register saved successfully with ID: {}", savedRegister.getRegisterId());
@@ -219,12 +194,12 @@ public class RegisterService implements IRegisterService {
 
             // Guardar la auditoría de actualización
             audithService.createAudit(
-                    "Register",
+                    REGISTER,
                     "Registro actualizado",
                     "UPDATE",
                     convertDTOToMap(registerDTO),
                     convertDTOToMap(updatedDTO),
-                    "SUCCESS"
+                    SUCCESS
             );
             logger.info("Register updated successfully with ID: {}", registerId);
             return updatedDTO;
@@ -245,12 +220,12 @@ public class RegisterService implements IRegisterService {
 
                 // Guardar la auditoría de eliminación
                 audithService.createAudit(
-                        "Register",
+                        REGISTER,
                         "Registro eliminado",
                         "DELETE",
                         convertEntityToMap(register),
                         null,
-                        "SUCCESS"
+                        SUCCESS
                 );
                 logger.info("Register deleted successfully with ID: {}", registerId);
             } else {
@@ -259,7 +234,6 @@ public class RegisterService implements IRegisterService {
             }
         } catch (DataAccessException e) {
             logger.error("Error deleting register with ID {}: {}", registerId, e.getMessage());
-            throw new DataAccessException("Error deleting register with ID " + registerId, e) {};
         }
     }
 
@@ -280,12 +254,12 @@ public class RegisterService implements IRegisterService {
 
         // Auditar la generación del reporte
         audithService.createAudit(
-                "Register",
+                REGISTER,
                 "Generated report for parking ID: " + parkingId,
                 "REPORT",
                 null,
                 convertListToMap(registerDTOs),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("Report generated successfully for parking ID: {}", parkingId);
@@ -309,12 +283,12 @@ public class RegisterService implements IRegisterService {
 
         // Auditar la generación del reporte
         audithService.createAudit(
-                "Register",
+                REGISTER,
                 "Generated PDF report for parking ID: " + parkingId,
                 "REPORT",
                 null,
                 convertListToMap(registerDTOs),
-                "SUCCESS"
+                SUCCESS
         );
 
         logger.info("PDF report generated successfully for parking ID: {}", parkingId);

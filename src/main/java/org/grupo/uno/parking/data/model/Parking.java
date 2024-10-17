@@ -1,6 +1,5 @@
 package org.grupo.uno.parking.data.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
@@ -29,7 +28,7 @@ public class Parking {
     private String address;
 
     @NotBlank(message = "El teléfono no puede estar vacío")
-    @Pattern(regexp = "^[0-9]{8}$", message = "El teléfono debe contener exactamente 8 dígitos numéricos y no puede contener letras ni caracteres especiales")
+    @Pattern(regexp = "^\\d{8}$", message = "El teléfono debe contener exactamente 8 dígitos numéricos y no puede contener letras ni caracteres especiales")
     private String phone;
 
     @Min(value = 1, message = "El número de espacios debe ser al menos 1")
