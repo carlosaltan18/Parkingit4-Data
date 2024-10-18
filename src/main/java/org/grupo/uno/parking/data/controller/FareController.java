@@ -117,16 +117,20 @@ public class FareController {
 
     @RolesAllowed("FARE")
     @DeleteMapping("/deleteFare/{id}")
-    public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id){
+    public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id) {
         Map<String, String> response = new HashMap<>();
         try {
-            fareService.delete(id);
-            response.put(MESSAGE, "Fare deleted successfully");
-            logger.info("Fare deleted: ID={}", id);
-            return ResponseEntity.ok(response);
-        } catch (IllegalArgumentException | DataAccessException e) {
-            logger.error("Error deleting fare: ID={} - {}", id, e.getMessage());
+            fareService.delete(id); // Este método debería ejecutarse sin lanzar excepciones
+            response.put("Message", "Fare deleted successfully");
+            return ResponseEntity.ok(response); // Esto debería devolver el estado 200 OK
+        } catch (EntityNotFoundException e) {
             response.put(ERROR, "An error occurred while deleting fare: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        } catch (DataAccessException e) {
+            response.put(ERROR, "An error occurred while deleting fare: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        } catch (Exception e) {
+            response.put(ERROR, "An unexpected error occurred: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
         }
     }
@@ -140,8 +144,10 @@ public class FareController {
             logger.info("Fare updated: ID={}, name={}", id, dto.getName());
             response.put(MESSAGE, "Fare updated successfully: " + dto.getName());
             return ResponseEntity.ok(response);
+        } catch (AllDataRequiredException e) {
+            response.put(ERROR, e.getMessage()); // Manejo de la excepción aquí
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (EntityNotFoundException e) {
-            logger.error("Error updating fare: {}", e.getMessage());
             response.put(ERROR, "Fare not found: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
         }
