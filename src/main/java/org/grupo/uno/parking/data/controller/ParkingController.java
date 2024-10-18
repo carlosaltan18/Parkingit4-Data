@@ -46,14 +46,14 @@ public class ParkingController {
 
     @RolesAllowed("PARKING")
     @PatchMapping("/parkingPatch/{id}")
-    public ResponseEntity<Void> patchParking(@PathVariable("id") Long id, @RequestBody Map<String, Object> updates) {
+    public ResponseEntity<String> patchParking(@PathVariable("id") Long id, @RequestBody Map<String, Object> updates) {
         try {
             parkingService.patchParking(id, updates);
             return ResponseEntity.ok().build();
         } catch (EntityNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(null);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         }
     }
 
@@ -115,6 +115,8 @@ public class ParkingController {
         try {
             parkingService.deleteParking(parkingId);
             return ResponseEntity.noContent().build();
+        } catch (EntityNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (DataAccessException e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
