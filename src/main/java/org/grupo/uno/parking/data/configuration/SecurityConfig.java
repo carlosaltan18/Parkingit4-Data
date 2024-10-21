@@ -17,8 +17,10 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableMethodSecurity(jsr250Enabled = true)
 public class SecurityConfig  {
     private static final String USER = "USER";
-    private static final String ADMIN = "ADMIN";
     private static final String AUDITH = "AUDITH";
+    private static final String PARKING = "PARKING";
+    private static final String FARE = "FARE";
+    private static final String REGISTER = "REGISTER";
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     public SecurityConfig(
@@ -34,8 +36,11 @@ public class SecurityConfig  {
                         .requestMatchers("/v3/**").permitAll()
                         .requestMatchers("/swagger-ui/**").permitAll()
                         .requestMatchers("/swagger-resources/**").permitAll()
-                        .requestMatchers("/prueba/**").hasAnyRole(ADMIN, USER)
-                        .requestMatchers("/fare/**").hasAnyRole(ADMIN, USER, AUDITH)
+                        .requestMatchers("/prueba/**").hasAnyRole(USER)
+                        .requestMatchers("/fare/**").hasAnyRole(FARE, USER, AUDITH)
+                        .requestMatchers("/parkings/**").hasAnyRole(PARKING, USER, AUDITH)
+                        .requestMatchers("/audith/**").hasAnyRole(AUDITH, USER)
+                        .requestMatchers("/registers/**").hasAnyRole(REGISTER, USER, AUDITH)
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session

@@ -15,3 +15,4 @@ public class FareDto {
     private Double price;
     private Boolean status;
 }
+

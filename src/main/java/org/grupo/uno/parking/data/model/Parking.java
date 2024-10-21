@@ -1,6 +1,7 @@
 package org.grupo.uno.parking.data.model;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -17,13 +18,23 @@ public class Parking {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "parking_id")
     private long parkingId;
+
+    @NotBlank(message = "El nombre no puede estar vacío")
+    @Size(max = 50, message = "El nombre no puede exceder los 50 caracteres")
     private String name;
+
+    @NotBlank(message = "La dirección no puede estar vacía")
+    @Size(max = 150, message = "La dirección no puede exceder los 150 caracteres")
     private String address;
+
+    @NotBlank(message = "El teléfono no puede estar vacío")
+    @Pattern(regexp = "^\\d{8}$", message = "El teléfono debe contener exactamente 8 dígitos numéricos y no puede contener letras ni caracteres especiales")
     private String phone;
+
+    @Min(value = 1, message = "El número de espacios debe ser al menos 1")
     private int spaces;
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "user_id", referencedColumnName = "user_id")
-    private User userId;
+
+
     private Boolean status;
 
     @Override
@@ -34,7 +45,6 @@ public class Parking {
                 ", address='" + address + '\'' +
                 ", phone='" + phone + '\'' +
                 ", spaces=" + spaces +
-                ", user=" + userId +
                 ", status=" + status +
                 '}';
     }
