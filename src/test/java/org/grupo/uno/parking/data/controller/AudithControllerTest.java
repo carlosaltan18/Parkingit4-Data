@@ -82,7 +82,7 @@ class AudithControllerTest {
                         .param("page", "0")
                         .param("size", "10"))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().json("{\"err\":\"Error al recuperar auditorías: Database error\"}"));  // Ajusta aquí
+                .andExpect(content().json("{\"err\":\"Error al recuperar auditorías: Database error\"}"));
     }
 
 
@@ -208,7 +208,7 @@ class AudithControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(mockAudit)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(content().string("Error al crear la auditoría: Database error")); // Updated expected value
+                .andExpect(content().string("Error al crear la auditoría: Database error"));
     }
 
 }

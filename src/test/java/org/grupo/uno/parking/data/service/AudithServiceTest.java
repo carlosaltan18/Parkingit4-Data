@@ -189,7 +189,7 @@ class AudithServiceTest {
         assertEquals(audit.getAuditId(), dto.getAuditId());
         assertEquals(audit.getEntity(), dto.getEntity());
         assertEquals(audit.getDescription(), dto.getDescription());
-        verify(audithRepository, never()).findById(any());  // No debería hacer llamadas al repositorio
+        verify(audithRepository, never()).findById(any());
     }
 
     @Test

@@ -56,7 +56,7 @@ class FareControllerTest {
 
     @Test
     void testAddFare_AllDataRequiredException() {
-        FareDto fareDto = new FareDto(); // Missing required data
+        FareDto fareDto = new FareDto();
 
         when(fareService.addFare(any())).thenThrow(new AllDataRequiredException("All data is required"));
 
@@ -184,7 +184,7 @@ class FareControllerTest {
     @Test
     void testUpdateFare_InvalidDataException() {
         FareDto fareDto = new FareDto();
-        fareDto.setName(""); // Invalid name
+        fareDto.setName("");
 
         doThrow(new AllDataRequiredException("All data is required")).when(fareService).updateFare(any(), anyLong());
 

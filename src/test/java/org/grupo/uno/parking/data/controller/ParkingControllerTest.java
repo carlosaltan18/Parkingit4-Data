@@ -171,8 +171,8 @@ class ParkingControllerTest {
         mockMvc.perform(patch("/parkings/parkingPatch/1")
                         .contentType("application/json")
                         .content("{\"invalidField\": \"Invalid Value\"}"))
-                .andExpect(status().isBadRequest()) // Esperar un estado 400
-                .andExpect(content().string(containsString("Field not recognized: invalidField"))); // Verificar el mensaje de error
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString("Field not recognized: invalidField")));
     }
 
     @Test

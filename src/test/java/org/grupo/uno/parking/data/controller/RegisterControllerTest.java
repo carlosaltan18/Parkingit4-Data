@@ -55,7 +55,7 @@ class RegisterControllerTest {
     @InjectMocks
     private RegisterController registerController;
 
-    private final LocalDateTime fixedDateTime = LocalDateTime.of(2024, 1, 1, 12, 0); // Establece una fecha y hora fija
+    private final LocalDateTime fixedDateTime = LocalDateTime.of(2024, 1, 1, 12, 0);
 
     @BeforeEach
     void setUp() {
@@ -83,7 +83,7 @@ class RegisterControllerTest {
         jsonObjectMapper.registerModule(new JavaTimeModule());
         mockMvc.perform(post("/registers/entrada")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonObjectMapper.writeValueAsString(registerDTO)))  // Cambiar aquí
+                        .content(jsonObjectMapper.writeValueAsString(registerDTO)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.plate").value("ABC123"));
     }
@@ -102,7 +102,7 @@ class RegisterControllerTest {
         RegisterDTO updatedRegister = new RegisterDTO(
                 1L,
                 "ABC123",
-                false, // Estado debe ser false después de salir
+                false,
                 fixedDateTime,
                 fixedDateTime.plusHours(1),
                 1L,
@@ -115,7 +115,7 @@ class RegisterControllerTest {
         mockMvc.perform(put("/registers/salida/ABC123"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.plate").value("ABC123"))
-                .andExpect(jsonPath("$.status").value(false)); // Verifica el estado también
+                .andExpect(jsonPath("$.status").value(false));
     }
 
     @Test
@@ -240,7 +240,6 @@ class RegisterControllerTest {
         ObjectMapper jsonObjectMapper = new ObjectMapper();
         jsonObjectMapper.registerModule(new JavaTimeModule());
 
-        // Cambiado a jsonObjectMapper
         String json = jsonObjectMapper.writeValueAsString(registerDTO);
 
         mockMvc.perform(put("/registers/updateRegister/1")
@@ -323,7 +322,7 @@ class RegisterControllerTest {
         );
 
         when(registerService.generateReportByParkingIdPDF(eq(1L), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(registers);
-        when(pdfService.generatePdfFromJson(any())).thenReturn(new byte[0]); // Simula el PDF como un byte vacío
+        when(pdfService.generatePdfFromJson(any())).thenReturn(new byte[0]);
 
         mockMvc.perform(post("/registers/generatePDF/1/2024-01-01/2024-01-31"))
                 .andExpect(status().isOk());
@@ -331,7 +330,6 @@ class RegisterControllerTest {
 
     @Test
     void getRegistersByParkingIdPDF_noRegisters_returnsNotFound() throws Exception {
-        // Simulación de la excepción cuando no se encuentran registros
         when(registerService.generateReportByParkingIdPDF(eq(1L), any(LocalDateTime.class), any(LocalDateTime.class))).thenThrow(new NoRegistersFoundException("No registers found"));
 
         mockMvc.perform(post("/registers/generatePDF/1/2024-01-01/2024-01-31"))
@@ -365,7 +363,7 @@ class RegisterControllerTest {
 
         mockMvc.perform(post("/registers/entrada")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(jsonMapper.writeValueAsString(registerDTO))) // Using the renamed variable
+                        .content(jsonMapper.writeValueAsString(registerDTO)))
                 .andExpect(status().isBadRequest());
     }
 
@@ -408,7 +406,7 @@ class RegisterControllerTest {
                 BigDecimal.valueOf(10.00)
         );
 
-        // Simula que se lanza una DataAccessException
+
         when(registerService.saveRegister(registerDTO))
                 .thenThrow(new DataAccessException("Database error") {});
 
