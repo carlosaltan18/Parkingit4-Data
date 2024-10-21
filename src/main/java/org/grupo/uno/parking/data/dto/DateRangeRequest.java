@@ -14,4 +14,8 @@ public class DateRangeRequest {
     @NotNull
     private String endDate; // Formato esperado: "yyyy-MM-dd'T'HH:mm:ss"
 
+    public DateRangeRequest(String startDate, String endDate) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
 }
