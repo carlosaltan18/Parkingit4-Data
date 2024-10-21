@@ -40,13 +40,12 @@ public class ServiceFare implements IServiceFare {
         } else {
             fares = fareRepository.findByNameContainingIgnoreCase(name, pageable);
         }
-        // Auditar la recuperación de tarifas
         audithService.createAudit(
                 "Fare",
                 "Retrieved all fares",
                 "READ",
-                null,  // Objeto no aplica
-                convertToMap(fares), // Respuesta
+                null,
+                convertToMap(fares),
                 SUCCESS
         );
 
@@ -63,13 +62,12 @@ public class ServiceFare implements IServiceFare {
         Fare fare = fareRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(""));
 
-        // Auditar la búsqueda de tarifa
         audithService.createAudit(
                 "Fare",
                 "Retrieved fare with ID " + id,
                 "READ",
-                null,  // Objeto no aplica
-                convertToMap(fare),  // Respuesta
+                null,
+                convertToMap(fare),
                 SUCCESS
         );
 
@@ -88,12 +86,12 @@ public class ServiceFare implements IServiceFare {
                     .orElseThrow(() -> new EntityNotFoundException(MESSAGE1));
             fareRepository.deleteById(idFare);
 
-            // Auditar la eliminación de la tarifa
+
             audithService.createAudit(
                     "Fare",
                     "Fare with ID " + idFare + " was deleted",
                     "DELETE",
-                    convertToMap(fareToDelete),  // Objeto de la tarifa eliminada
+                    convertToMap(fareToDelete),
                     null,
                     SUCCESS
             );
@@ -127,33 +125,33 @@ public class ServiceFare implements IServiceFare {
 
         fareRepository.save(fare);
 
-        // Auditar la actualización de la tarifa
+
         audithService.createAudit(
                 "Fare",
                 "Fare with ID " + id + " was updated",
                 "UPDATE",
-                convertToMap(fare),  // Objeto de la tarifa actualizada
-                convertToMap(fare),  // Respuesta, asegurando que no sea null
+                convertToMap(fare),
+                convertToMap(fare),
                 "SUCCESS"
         );
     }
 
     @Override
     public Fare addFare(FareDto fareDto) {
-        // Validación de datos requeridos
+
         if (fareDto.getName() == null || fareDto.getStartTime() == null || fareDto.getEndTime() == null || fareDto.getPrice() == null) {
             logger.warn("All data is required");
             throw new AllDataRequiredException("All data is required");
         }
 
-        // Verificar si la tarifa ya existe
+
         Optional<Fare> existingFare = fareRepository.findByName(fareDto.getName());
         if (existingFare.isPresent()) {
             logger.warn("Fare with name {} already exists", fareDto.getName());
             throw new FareExist("Fare with name " + fareDto.getName() + " already exists");
         }
 
-        // Crear y guardar la nueva tarifa
+
         Fare fare = new Fare();
         fare.setName(fareDto.getName());
         fare.setStartTime(fareDto.getStartTime());
@@ -164,13 +162,13 @@ public class ServiceFare implements IServiceFare {
 
         fare = fareRepository.save(fare);
 
-        // Auditar la creación de la tarifa
+
         audithService.createAudit(
                 "Fare",
                 "Fare created with name " + fareDto.getName(),
                 "CREATE",
-                convertToMap(fare),  // Objeto de la tarifa creada
-                convertToMap(fare),  // Respuesta, asegurando que no sea null
+                convertToMap(fare),
+                convertToMap(fare),
                 "SUCCESS"
         );
 
@@ -182,7 +180,6 @@ public class ServiceFare implements IServiceFare {
         return fareRepository.findByName(name);
     }
 
-    // Método para convertir Fare a Map
     private Map<String, Object> convertToMap(Fare fare) {
         Map<String, Object> fareMap = new HashMap<>();
         fareMap.put("id", fare.getFareId());
@@ -194,7 +191,6 @@ public class ServiceFare implements IServiceFare {
         return fareMap;
     }
 
-    // Método para convertir Page<Fare> a Map
     private Map<String, Object> convertToMap(Page<Fare> fares) {
         Map<String, Object> faresMap = new HashMap<>();
         faresMap.put("content", fares.getContent());

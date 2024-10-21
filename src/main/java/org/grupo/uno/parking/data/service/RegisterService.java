@@ -50,7 +50,7 @@ public class RegisterService implements IRegisterService {
 
     @Override
     public RegisterDTO registroDeEntrada(String plate, long parkingId) {
-        // Aquí obtén la entidad de Parking usando parkingId
+
         Parking parking = parkingRepository.findById(parkingId)
                 .orElseThrow(() -> new EntityNotFoundException("Parking not found"));
 
@@ -58,66 +58,61 @@ public class RegisterService implements IRegisterService {
         register.setPlate(plate);
         register.setParking(parking);
         register.setStartDate(LocalDateTime.now());
-        register.setStatus(true); // o el valor que necesites
+        register.setStatus(true);
 
-        // Guarda el registro
         register = registerRepository.save(register);
 
-        // Convierte a DTO
         return convertToDTO(register);
     }
 
 
     @Override
     public RegisterDTO registroDeSalida(String plate) {
-        LocalDateTime endDate = LocalDateTime.now(); // Fecha actual como endDate
+        LocalDateTime endDate = LocalDateTime.now();
 
-        // Buscar el registro activo por la placa
+
         Register register = registerRepository.findActiveRegisterByPlate(plate)
                 .orElseThrow(() -> new IllegalArgumentException("Registro activo con placa " + plate + " no encontrado"));
 
-        register.setEndDate(endDate); // Establecer fecha de salida
+        register.setEndDate(endDate);
 
-        // Calcular la diferencia de tiempo entre startDate y endDate
+
         long minutesParked = java.time.Duration.between(register.getStartDate(), endDate).toMinutes();
 
-        // Obtener todas las tarifas
-        List<Fare> fares = fareRepository.findAll(); // Asegúrate de que este método obtiene todas las tarifas disponibles
+
+        List<Fare> fares = fareRepository.findAll();
 
         Fare selectedFare = null;
         BigDecimal total = BigDecimal.ZERO;
 
-        // Iterar sobre las tarifas para determinar cuál aplicar
+
         for (Fare fare : fares) {
-            // Verificar si la tarifa se aplica a la hora de entrada
+
             LocalTime startTime = LocalTime.parse(fare.getStartTime());
             LocalTime endTime = LocalTime.parse(fare.getEndTime());
             LocalTime entryTime = register.getStartDate().toLocalTime();
 
-            // Comprobar si la hora de entrada está dentro del rango de la tarifa
+
             if (!entryTime.isBefore(startTime) && !entryTime.isAfter(endTime)) {
-                // Calcular el total basado en la duración y el precio de la tarifa
+
                 total = BigDecimal.valueOf((minutesParked / 60.0) * fare.getPrice());
-                selectedFare = fare; // Asignar la tarifa seleccionada
-                break; // Salir del bucle una vez que se encuentra una tarifa adecuada
+                selectedFare = fare;
+                break;
             }
         }
 
-        // Si no se encontró una tarifa adecuada, utilizar la tarifa por defecto
         if (selectedFare == null) {
-            selectedFare = fareRepository.findById(1L) // Cambia 1L al ID de tu tarifa por defecto si es necesario
+            selectedFare = fareRepository.findById(1L)
                     .orElseThrow(() -> new IllegalArgumentException("Tarifa por defecto no encontrada"));
             total = BigDecimal.valueOf((minutesParked / 60.0) * selectedFare.getPrice());
         }
 
         register.setFare(selectedFare);
         register.setTotal(total);
-        register.setStatus(false); // Marcar como cerrado
+        register.setStatus(false);
 
-        // Actualizar el registro en la base de datos
         Register updatedRegister = registerRepository.save(register);
 
-        // Auditoría
         audithService.createAudit(
                 REGISTER,
                 "Registro de salida actualizado",
@@ -136,7 +131,6 @@ public class RegisterService implements IRegisterService {
         Page<Register> registers = registerRepository.findAll(pageable);
         Page<RegisterDTO> registerDTOs = registers.map(this::convertToDTO);
 
-        // Auditar la recuperación de registros
         audithService.createAudit(
                 REGISTER,
                 "Retrieved all registers",
@@ -165,7 +159,6 @@ public class RegisterService implements IRegisterService {
 
         RegisterDTO savedDTO = convertToDTO(savedRegister);
 
-        // Guardar la auditoría de creación
         audithService.createAudit(
                 REGISTER,
                 "Registro creado",
@@ -192,7 +185,6 @@ public class RegisterService implements IRegisterService {
 
             RegisterDTO updatedDTO = convertToDTO(updatedRegister);
 
-            // Guardar la auditoría de actualización
             audithService.createAudit(
                     REGISTER,
                     "Registro actualizado",
@@ -218,7 +210,6 @@ public class RegisterService implements IRegisterService {
                 Register register = optionalRegister.get();
                 registerRepository.deleteById(registerId);
 
-                // Guardar la auditoría de eliminación
                 audithService.createAudit(
                         REGISTER,
                         "Registro eliminado",
@@ -247,12 +238,10 @@ public class RegisterService implements IRegisterService {
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
         }
 
-        // Convertir los registros a DTO
         List<RegisterDTO> registerDTOs = registers.stream()
                 .map(this::convertToDTO)
                 .toList();
 
-        // Auditar la generación del reporte
         audithService.createAudit(
                 REGISTER,
                 "Generated report for parking ID: " + parkingId,
@@ -276,12 +265,10 @@ public class RegisterService implements IRegisterService {
             throw new IllegalArgumentException("No registers found for parking ID " + parkingId);
         }
 
-        // Convertir los registros a DTO
         List<RegisterDTO> registerDTOs = registers.stream()
                 .map(this::convertToDTO)
                 .toList();
 
-        // Auditar la generación del reporte
         audithService.createAudit(
                 REGISTER,
                 "Generated PDF report for parking ID: " + parkingId,
@@ -296,7 +283,6 @@ public class RegisterService implements IRegisterService {
     }
 
     private void validateRegister(RegisterDTO registerDTO) {
-        // Validaciones
         if (registerDTO.getPlate() == null || registerDTO.getPlate().isEmpty()) {
             throw new IllegalArgumentException("El campo 'plate' no puede estar vacío.");
         }
@@ -306,7 +292,6 @@ public class RegisterService implements IRegisterService {
         if (registerDTO.getEndDate() == null) {
             throw new IllegalArgumentException("La fecha de finalización no puede estar vacía.");
         }
-        // Validar la existencia de parking y tarifa
         if (!parkingRepository.existsById(registerDTO.getParkingId())) {
             throw new IllegalArgumentException("Parking con ID " + registerDTO.getParkingId() + " no encontrado.");
         }
@@ -338,18 +323,15 @@ public class RegisterService implements IRegisterService {
 
         RegisterDTO dto = new RegisterDTO();
 
-        // Usa Optional o verifica nulos
         dto.setRegisterId(register.getRegisterId());
         dto.setPlate(register.getPlate());
         dto.setStatus(register.isStatus());
         dto.setStartDate(register.getStartDate());
         dto.setEndDate(register.getEndDate());
 
-        // Maneja posibles nulls en parkingId
-        dto.setParkingId(register.getParking() != null ? register.getParking().getParkingId() : 0); // 0 o un valor que definas como predeterminado
+        dto.setParkingId(register.getParking() != null ? register.getParking().getParkingId() : 0);
 
-        // Maneja posibles nulls en fareId
-        dto.setFareId(register.getFare() != null ? register.getFare().getFareId() : 0); // 0 o un valor que definas como predeterminado
+        dto.setFareId(register.getFare() != null ? register.getFare().getFareId() : 0);
 
         dto.setTotal(register.getTotal());
 

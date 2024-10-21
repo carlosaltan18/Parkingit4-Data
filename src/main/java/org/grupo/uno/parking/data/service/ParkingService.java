@@ -24,7 +24,6 @@ public class ParkingService implements IParkingService {
 
     private static final Logger logger = LoggerFactory.getLogger(ParkingService.class);
 
-    // Definir constantes para evitar duplicación de literales
     private static final String PARKING = "Parking";
     private static final String PARKING_NOT_FOUND = "Parking with ID {} does not exist";
     private static final String DOES_NOT_EXIST = " does not exist";
@@ -51,7 +50,6 @@ public class ParkingService implements IParkingService {
                     return new EntityNotFoundException(PARKING + TEXTO_WITH + parkingId + DOES_NOT_EXIST);
                 });
 
-        // Aplicar actualizaciones usando setters
         updates.forEach((key, value) -> {
             switch (key) {
                 case "name":
@@ -105,7 +103,7 @@ public class ParkingService implements IParkingService {
 
         List<Parking> activeParkings = parkingRepository.findByStatus(true);
 
-        // Reemplazo de Stream.collect(Collectors.toList()) con Stream.toList()
+
         return activeParkings.stream().map(this::mapParkingInfo).toList();
     }
 
