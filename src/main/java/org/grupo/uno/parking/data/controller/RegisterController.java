@@ -46,7 +46,6 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
         try {
-            // Llama al servicio para registrar la entrada, usando plate y parkingId de registerDTO
             RegisterDTO newRegister = registerService.registroDeEntrada(registerDTO.getPlate(), registerDTO.getParkingId());
             return new ResponseEntity<>(newRegister, HttpStatus.CREATED);
         } catch (Exception e) {
@@ -55,7 +54,6 @@ public class RegisterController {
         }
     }
 
-    // Endpoint para registrar la salida de un vehículo
     @RolesAllowed("REGISTER")
     @PutMapping("/salida/{plate}")
     public ResponseEntity<RegisterDTO> registroDeSalida(@PathVariable String plate) {
@@ -135,7 +133,7 @@ public class RegisterController {
             return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
-    // Nuevo endpoint para obtener registros por ID de estacionamiento
+
     @RolesAllowed("REGISTER")
     @GetMapping("/report/{parkingId}/{startDate}/{endDate}")
     public ResponseEntity<List<RegisterDTO>> getRegistersByParkingId(@PathVariable Long parkingId,

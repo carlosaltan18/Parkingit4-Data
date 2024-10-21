@@ -120,9 +120,9 @@ public class FareController {
     public ResponseEntity<Map<String, String>> deleteFare(@PathVariable Long id) {
         Map<String, String> response = new HashMap<>();
         try {
-            fareService.delete(id); // Este método debería ejecutarse sin lanzar excepciones
+            fareService.delete(id);
             response.put("Message", "Fare deleted successfully");
-            return ResponseEntity.ok(response); // Esto debería devolver el estado 200 OK
+            return ResponseEntity.ok(response);
         } catch (EntityNotFoundException e) {
             response.put(ERROR, "An error occurred while deleting fare: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
@@ -145,7 +145,7 @@ public class FareController {
             response.put(MESSAGE, "Fare updated successfully: " + dto.getName());
             return ResponseEntity.ok(response);
         } catch (AllDataRequiredException e) {
-            response.put(ERROR, e.getMessage()); // Manejo de la excepción aquí
+            response.put(ERROR, e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
         } catch (EntityNotFoundException e) {
             response.put(ERROR, "Fare not found: " + e.getMessage());
